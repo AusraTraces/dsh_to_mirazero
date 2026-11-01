@@ -34,7 +34,7 @@ export function loadConfig(raw = {}, env = process.env) {
 
   return {
     baseUrl: String(raw.baseUrl || '').trim(),
-    apiKey: String(raw.apiKey || env.MIRAZERO_API_KEY || '').trim(),
+    apiKey: String(raw.apiKey || env.MIRAZERO_INTEGRATION_KEY || env.MIRAZERO_API_KEY || '').trim(),
     autoStart: raw.autoStart === true,
     models: normalizeList(raw.models),
     pollIntervalMs: clampInt(raw.pollIntervalMs, 1500, 60000, 3000),
@@ -129,7 +129,7 @@ export function isConfigured(config) {
 export function missingConfig(config) {
   const missing = []
   if (!config.baseUrl) missing.push('baseUrl')
-  if (!config.apiKey) missing.push('apiKey (MiraZero user API key)')
+  if (!config.apiKey) missing.push('apiKey (MiraZero model-bound integration key, mzi_...)')
   return missing
 }
 

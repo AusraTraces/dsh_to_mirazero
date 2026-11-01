@@ -1,13 +1,16 @@
 import { getPendingRequests } from '../../../utils/requestManager'
-import { requireDshUser } from './_auth'
+import { requestBelongsTo, requireDshIntegration } from './_auth'
 
 export default defineEventHandler(async (event) => {
-  const user = await requireDshUser(event)
-  const pending = getPendingRequests(user.role === 'admin' ? undefined : user.id)
+  const auth = await requireDshIntegration(event)
+  const pending = getPendingRequests(auth.user.role === 'admin' ? undefined : auth.user.id)
+    .filter(request => requestBelongsTo(auth, request))
   return {
     ok: true,
     pending: pending.length,
     fullContext: true,
-    userId: user.id
+    userId: auth.user.id,
+    modelId: auth.model.id,
+    modelName: auth.model.name
   }
 })

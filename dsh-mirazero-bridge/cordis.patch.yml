@@ -1,8 +1,9 @@
 # MiraZero bridge — Host plugin row.
 #
-# Fill baseUrl with the site root (or the Integrations Base URL, which is
-# normalized), and apiKey with the MiraZero user API key created on the
-# "第三方接入 → 连接 Agent 平台" page. No username or password is needed.
+# Fill baseUrl with the site root (or the Agent platform Base URL, which is
+# normalized), and apiKey with the model-bound integration key created in
+# "模型设置 → 第三方接入 → Agent 平台" (mzi_...). No username or password is needed.
+# The same fields are editable in DSH Settings → MiraZero.
 - insert:
     - id: dsh-mirazero-bridge
       name: 'dsh-mirazero-bridge'

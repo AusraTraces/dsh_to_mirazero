@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
-import { mkdtempSync } from 'node:fs'
+import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { MiraZeroBridge } from '../lib/bridge.js'
@@ -200,7 +200,7 @@ test('one public request creates one restricted Session in the MiraZero workspac
     ctx,
     config: {
       baseUrl: `http://127.0.0.1:${port}`,
-      apiKey: 'mz_secret',
+      apiKey: 'mzi_secret',
       character: { name: 'Mira', description: 'A calm observer.' },
       pollIntervalMs: 1500,
       maxAttempts: 1,
@@ -224,9 +224,11 @@ test('one public request creates one restricted Session in the MiraZero workspac
     assert.match(bridgeState.sections[0].text, /隔离墙/)
     assert.match(bridgeState.sections[0].text, /A calm observer/)
     assert.equal(bridgeState.sections[0].interpolate, false)
-    assert.equal(state.headers[0].authorization, 'Bearer mz_secret')
+    assert.equal(state.headers[0].authorization, 'Bearer mzi_secret')
     assert.equal(bridge.status().sessions, 1)
     assert.equal(bridge.status().api.fullContext, true)
+    assert.equal(bridge.publicConfig().fullContext, true)
+    assert.equal(bridge.publicConfig().running, true)
   } finally {
     bridge.stop('test')
     await new Promise((resolve) => server.close(resolve))
@@ -243,7 +245,7 @@ test('two public requests get two distinct Sessions', async () => {
     ctx: fakeCtx(bridgeState),
     config: {
       baseUrl: `http://127.0.0.1:${port}`,
-      apiKey: 'mz_secret',
+      apiKey: 'mzi_secret',
       provider: 'test',
       model: 'test-model',
       pollIntervalMs: 1500,
@@ -267,6 +269,47 @@ test('two public requests get two distinct Sessions', async () => {
   }
 })
 
+test('settings-page connection changes are persisted and never expose the key', async () => {
+  const stateDir = mkdtempSync(join(tmpdir(), 'mz-config-'))
+  const bridge = new MiraZeroBridge({
+    ctx: fakeCtx(newBridgeState()),
+    config: {
+      baseUrl: 'https://old.example/api/integrations/v1',
+      apiKey: 'mzi_old',
+      autoStart: false,
+      stateDir,
+      workspacePath: mkdtempSync(join(tmpdir(), 'mz-ws-')),
+    },
+  })
+  const before = bridge.publicConfig()
+  assert.equal(before.baseUrl, 'https://old.example')
+  assert.equal(before.apiKeyPresent, true)
+  assert.equal(before.apiKey, undefined)
+  assert.equal(before.apiKeyHint.endsWith('_old'), true)
+
+  await bridge.setConnection({
+    baseUrl: 'https://new.example/api/integrations/v1',
+    apiKey: 'mzi_new_value',
+    autoStart: true,
+  })
+  const after = bridge.publicConfig()
+  assert.equal(after.baseUrl, 'https://new.example')
+  assert.equal(after.apiKeyPresent, true)
+  assert.equal(after.autoStart, true)
+  assert.equal(after.configured, true)
+  assert.equal(after.apiKeyHint.endsWith('alue'), true)
+
+  await bridge.setConnection({ clearApiKey: true })
+  const cleared = bridge.publicConfig()
+  assert.equal(cleared.apiKeyPresent, false)
+  assert.equal(cleared.configured, false)
+
+  const stored = JSON.parse(readFileSync(join(stateDir, 'connection.json'), 'utf8'))
+  assert.equal(stored.baseUrl, 'https://new.example')
+  assert.equal(stored.apiKey, '')
+  assert.equal(stored.autoStart, true)
+})
+
 test('a site without the DSH provider patch reports an actionable error', async () => {
   const { server } = startSite([], { missing: true })
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
@@ -275,7 +318,7 @@ test('a site without the DSH provider patch reports an actionable error', async 
     ctx: fakeCtx(newBridgeState()),
     config: {
       baseUrl: `http://127.0.0.1:${port}`,
-      apiKey: 'mz_secret',
+      apiKey: 'mzi_secret',
       pollIntervalMs: 1500,
       stateDir: mkdtempSync(join(tmpdir(), 'mz-bridge-')),
       workspacePath: mkdtempSync(join(tmpdir(), 'mz-ws-')),

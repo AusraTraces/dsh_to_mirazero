@@ -61,9 +61,9 @@ if (Test-Path $linked) {
 
 Write-Host ''
 Write-Host 'Next:'
-Write-Host '  1. Edit the plugin row in cordis.patch.yml: baseUrl and apiKey.'
-Write-Host '     apiKey is the MiraZero user API key from Integrations -> Agent platform.'
+Write-Host '  1. Open DSH Settings -> MiraZero and fill the site address + mzi_ key.'
+Write-Host '     The same values can be set in the plugin row (baseUrl / apiKey).'
 Write-Host '  2. Copy mirazero-patch/server/api/plugin/dsh into the MiraZero repo'
-Write-Host '     and rebuild the site (the new version no longer ships the old provider API).'
+Write-Host '     and rebuild the site (the new version only ships the client API).'
 Write-Host '  3. Restart DeepSeek Harness so the new bundle is composed.'
 Write-Host '  4. In DSH run: mirazero_status, then mirazero_start.'

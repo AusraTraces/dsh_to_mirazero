@@ -17,11 +17,11 @@ test('normalizeBaseUrl accepts the Integrations Base URL and strips it', () => {
   assert.throws(() => normalizeBaseUrl('https://user:pass@x'), /credentials/)
 })
 
-test('client sends the user API key as Bearer and x-api-key', async () => {
+test('client sends the model-bound integration key as Bearer and x-api-key', async () => {
   let seen
   const api = new MiraZeroApi({
     baseUrl: 'https://mz.example',
-    apiKey: 'mz_secret',
+    apiKey: 'mzi_secret',
     fetchImpl: async (url, options) => {
       seen = { url, options }
       return response({ ok: true, requests: [{ id: 'r1', payload: { messages: [] }, type: 'openai' }] })
@@ -29,8 +29,8 @@ test('client sends the user API key as Bearer and x-api-key', async () => {
   })
   const requests = await api.requests()
   assert.equal(requests[0].id, 'r1')
-  assert.equal(seen.options.headers.authorization, 'Bearer mz_secret')
-  assert.equal(seen.options.headers['x-api-key'], 'mz_secret')
+  assert.equal(seen.options.headers.authorization, 'Bearer mzi_secret')
+  assert.equal(seen.options.headers['x-api-key'], 'mzi_secret')
   assert.equal(seen.options.headers['x-mirazero-plugin-token'], undefined)
   assert.match(String(seen.url), /\/api\/plugin\/dsh\/requests/)
 })
@@ -39,7 +39,7 @@ test('models use the new integrations endpoint', async () => {
   let seen
   const api = new MiraZeroApi({
     baseUrl: 'https://mz.example',
-    apiKey: 'mz_secret',
+    apiKey: 'mzi_secret',
     fetchImpl: async (url) => {
       seen = String(url)
       return response({ object: 'list', data: [{ id: 'mira', name: 'Mira', provider: 'MiraZero', status: 'online' }] })
@@ -54,7 +54,7 @@ test('reply uses the DSH provider endpoint', async () => {
   let call
   const api = new MiraZeroApi({
     baseUrl: 'https://mz.example',
-    apiKey: 'mz_secret',
+    apiKey: 'mzi_secret',
     fetchImpl: async (url, options) => {
       call = { url: String(url), body: options.body }
       return response({ success: true })
@@ -68,7 +68,7 @@ test('reply uses the DSH provider endpoint', async () => {
 test('a missing DSH patch produces an actionable error', async () => {
   const api = new MiraZeroApi({
     baseUrl: 'https://mz.example',
-    apiKey: 'mz_secret',
+    apiKey: 'mzi_secret',
     fetchImpl: async () => response({ statusMessage: 'not found' }, { status: 404 }),
   })
   await assert.rejects(() => api.requests(), /mirazero-patch|DSH_PATCH_MISSING/)
@@ -77,7 +77,7 @@ test('a missing DSH patch produces an actionable error', async () => {
 test('redirect responses fail instead of being followed', async () => {
   const api = new MiraZeroApi({
     baseUrl: 'https://mz.example',
-    apiKey: 'mz_secret',
+    apiKey: 'mzi_secret',
     fetchImpl: async () => new Response('', { status: 302, headers: { location: 'http://127.0.0.1/' } }),
   })
   await assert.rejects(() => api.requests(), /redirected|integration API failed/)

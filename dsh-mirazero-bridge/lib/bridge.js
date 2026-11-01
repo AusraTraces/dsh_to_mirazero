@@ -9,7 +9,7 @@
 import { join } from 'node:path'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
-import { MiraZeroApi, describeApiError } from './mirazero.js'
+import { MiraZeroApi, describeApiError, normalizeBaseUrl } from './mirazero.js'
 import { loadConfig, isConfigured, missingConfig, normalizeCharacter } from './config.js'
 import { Logger } from './log.js'
 import { maybeSearch } from './search.js'
@@ -26,9 +26,9 @@ export class MiraZeroBridge {
   #running = false
   #busy = false
   #timer
-  #startedAt
-  #lastPollAt
-  #lastError
+  #startedAt = null
+  #lastPollAt = null
+  #lastError = null
   #lastProbe
   #handled = 0
   #failed = 0
@@ -48,6 +48,7 @@ export class MiraZeroBridge {
     this.#ctx = options.ctx
     this.#config = loadConfig(options.config || {}, options.env || process.env)
     this.#logger = options.logger || new Logger(this.#config.stateDir)
+    this.#applyStoredConnection()
     this.#auditFile = join(this.#config.stateDir, 'audit.jsonl')
     this.#character = normalizeCharacter({
       ...this.#config.character,
@@ -576,6 +577,117 @@ export class MiraZeroBridge {
 
   features() {
     return { ...this.#features }
+  }
+
+  /**
+   * The connection settings a browser page may see. The key itself never
+   * leaves the host: only a "present" flag and its last four characters.
+   */
+  publicConfig() {
+    const key = this.#config.apiKey
+    return {
+      baseUrl: this.#config.baseUrl,
+      apiKeyPresent: Boolean(key),
+      apiKeyHint: key ? `••••${key.slice(-4)}` : '',
+      autoStart: this.#config.autoStart,
+      configured: isConfigured(this.#config),
+      missing: missingConfig(this.#config),
+      running: this.#running,
+      lastError: this.#lastError,
+      fullContext: this.#lastProbe?.fullContext === true,
+      model: this.#lastProbe?.model || '',
+      pending: this.#lastProbe?.pending ?? null,
+      handled: this.#handled,
+      failed: this.#failed,
+    }
+  }
+
+  /**
+   * Change the site connection from the settings page, persist it, and — when
+   * the bridge is already polling — restart it against the new origin.
+   *
+   * `apiKey: ''` keeps the stored key (the form leaves the field blank); pass
+   * `clearApiKey: true` to remove it. An empty `baseUrl` is allowed and simply
+   * leaves the bridge unconfigured.
+   */
+  async setConnection(patch = {}) {
+    const input = patch && typeof patch === 'object' ? patch : {}
+    let baseUrl = this.#config.baseUrl
+    if (Object.prototype.hasOwnProperty.call(input, 'baseUrl')) {
+      const raw = String(input.baseUrl ?? '').trim()
+      baseUrl = raw ? normalizeBaseUrl(raw) : ''
+    }
+    let apiKey = this.#config.apiKey
+    if (input.clearApiKey === true) apiKey = ''
+    else if (Object.prototype.hasOwnProperty.call(input, 'apiKey')) {
+      const raw = String(input.apiKey ?? '').trim()
+      if (raw) apiKey = raw
+    }
+    let autoStart = this.#config.autoStart
+    if (typeof input.autoStart === 'boolean') autoStart = input.autoStart
+
+    const changed = baseUrl !== this.#config.baseUrl || apiKey !== this.#config.apiKey
+    this.#config.baseUrl = baseUrl
+    this.#config.apiKey = apiKey
+    this.#config.autoStart = autoStart
+    this.#persistConnection()
+    this.#audit({ event: 'connection.updated', baseUrl, apiKeyPresent: Boolean(apiKey), changed })
+
+    if (changed) {
+      this.#lastProbe = null
+      this.#api = new MiraZeroApi({
+        baseUrl,
+        apiKey,
+        timeoutMs: this.#config.requestTimeoutMs,
+        logger: this.#logger,
+      })
+      if (this.#running) {
+        this.stop('config-changed')
+        try {
+          await this.start()
+        } catch (error) {
+          this.#lastError = describeApiError(error)
+          this.#logger.warn(`restart after config change failed: ${this.#lastError}`)
+        }
+      }
+    }
+    return this.status()
+  }
+
+  #storedConnectionPath() {
+    return join(this.#config.stateDir, 'connection.json')
+  }
+
+  /** Values saved from the settings page win over the YAML row. */
+  #applyStoredConnection() {
+    const stored = readJson(this.#storedConnectionPath())
+    if (typeof stored.baseUrl === 'string') this.#config.baseUrl = stored.baseUrl.trim()
+    if (typeof stored.apiKey === 'string') this.#config.apiKey = stored.apiKey.trim()
+    if (typeof stored.autoStart === 'boolean') this.#config.autoStart = stored.autoStart
+    if (this.#config.baseUrl) {
+      try {
+        this.#config.baseUrl = normalizeBaseUrl(this.#config.baseUrl)
+      } catch {
+        // leave the invalid value visible so the settings page can report it
+      }
+    }
+  }
+
+  #persistConnection() {
+    try {
+      mkdirSync(this.#config.stateDir, { recursive: true })
+      const body = {
+        baseUrl: this.#config.baseUrl,
+        apiKey: this.#config.apiKey,
+        autoStart: this.#config.autoStart,
+      }
+      writeFileSync(this.#storedConnectionPath(), `${JSON.stringify(body, null, 2)}\n`, {
+        encoding: 'utf8',
+        mode: 0o600,
+      })
+    } catch (error) {
+      this.#logger.warn(`connection could not be persisted: ${describeError(error)}`)
+    }
   }
 
   setCharacter(patch) {

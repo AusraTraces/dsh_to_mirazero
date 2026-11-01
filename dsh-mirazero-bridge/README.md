@@ -12,13 +12,14 @@
 公开客户端
    │  OpenAI / Claude / Responses 兼容请求（可带图片）
    ▼
-MiraZero 站点（新版：用户 API Key + /api/integrations/v1）
-   ├─ 客户端调用：/api/integrations/v1/*（标准模型 API）
+MiraZero 站点（新版：模型绑定 mzi_ Key + /api/integrations/v1）
+   ├─ 客户端调用：/api/integrations/v1/*（仅绑定模型）
    └─ DSH 提供方补丁：/api/plugin/dsh/*（完整 payload + 历史 + 图片）
    │
    ▼
 dsh-mirazero-bridge
-   ├─ 用 baseUrl + 用户 API Key 调用补丁接口
+   ├─ 用 baseUrl + 模型绑定 Key 调用补丁接口
+   ├─ DSH 设置 → MiraZero：连接、开关、角色卡可视化编辑
    ├─ MiraZero 工作区：每个请求新建一个 Session
    ├─ 角色卡作为 system prompt section（interpolate: false）
    ├─ 图片作为 Session prompt 的 image part
@@ -32,22 +33,23 @@ MiraZero 按原协议返回角色文本
 
 ## 快速开始（两步）
 
-### 1. 在 MiraZero 上创建用户 API Key
+### 1. 在 MiraZero 上创建模型绑定 Key
 
-新版 MiraZero 的第三方接入入口在 **`/integrations` → 连接 Agent 平台**：
+新版 MiraZero 的第三方接入入口在 **模型设置 → 第三方接入 → Agent 平台**：
 
-1. 创建一个用户 API Key（`mz_...`），复制出来；
-2. 复制页面上的 Base URL（`https://站点/api/integrations/v1`）；
-3. 模型可以是自己账号下的公开模型，也可以是站点公开模型。
+1. 先保存要公开的模型；
+2. 在该模型下创建专用 Key（`mzi_...`），复制出来；
+3. 复制 Base URL（`https://站点/api/integrations/v1`）与模型 ID。
 
-这个 Key 同时用于标准 `/api/integrations/v1` 和桥接补丁；撤销 Key 后桥接立即失效。
+这个 Key **只绑定当前模型**，同时用于标准 `/api/integrations/v1` 和桥接补丁；
+撤销 Key 后桥接立即失效，不影响其他模型或普通用户 Key。
 
 新版删除了旧版 AstrBot 插件接口，提供方侧需要补丁。把
 [`mirazero-patch/server/api/plugin/dsh/`](../mirazero-patch/server/api/plugin/dsh/)
 复制到 MiraZero 仓库同路径，重新构建并重启站点。补丁只新增接口，不改现有行为；
 没有补丁时插件会明确报 `DSH_PATCH_MISSING`，不会静默降级。
 
-### 2. 在 DSH 里填两个值
+### 2. 在 DSH 设置里填连接
 
 安装插件：
 
@@ -61,28 +63,30 @@ plugin → 添加插件 → E:\dshtomirazero\dsh-mirazero-bridge
 powershell -ExecutionPolicy Bypass -File E:\dshtomirazero\dsh-mirazero-bridge\install.ps1
 ```
 
-编辑 `~/.dsh/profiles/desktop/cordis.patch.yml`：
+重启 DSH，打开 **设置 → MiraZero**：
+
+- **站点地址**：`https://你的站点`（也可粘贴 `/api/integrations/v1` 结尾的 Base URL）；
+- **第三方接入 Key**：`mzi_...`；
+- **自动开始轮询**：打开；
+- **检查连接**：验证 Key 并读取绑定模型；
+- **功能开关**：图片、自动检索、角色卡、lorebook 等逐项开关；
+- **角色卡**：直接编辑名字、简介、性格、说话方式并保存。
+
+保存后立即生效；正在轮询时，连接变化会自动重启桥接。设置写入
+`$DSH_HOME/mirazero-bridge/connection.json` 与 `features.json`，优先于 YAML 默认值。
+
+也可以直接编辑 `~/.dsh/profiles/desktop/cordis.patch.yml`：
 
 ```yaml
 - id: dsh-mirazero-bridge
   name: 'dsh-mirazero-bridge'
   config:
-    # 站点根地址；粘贴 /api/integrations/v1 结尾的 Base URL 也会自动归一化
-    baseUrl: 'https://你的mirazero站点'
-    apiKey: 'mz_...（Integrations 页面创建的用户 API Key）'
+    baseUrl: 'https://你的站点'
+    apiKey: 'mzi_...'
     autoStart: true
-    character:
-      name: 'Mira'
-      description: '冷静、敏锐、略带疏离感。'
-      personality: '先观察再开口，不轻易承诺。'
-      speechStyle: '第一人称，句子偏短。'
-    features:
-      images: true
-      remoteImages: true
-      autoSearch: true
 ```
 
-重启 DSH，然后：
+然后在对话中：
 
 ```text
 mirazero_status
@@ -164,7 +168,7 @@ mirazero_character { patch: { "personality": "更温和一些", "lorebook": [] }
 | 字段 | 默认 | 说明 |
 |---|---|---|
 | `baseUrl` | 空 | 站点根地址；`/api/integrations/v1` 结尾会自动归一化 |
-| `apiKey` | 空 | 新版 MiraZero 用户 API Key（`mz_...`）；也可用环境变量 `MIRAZERO_API_KEY` |
+| `apiKey` | 空 | 模型绑定第三方接入 Key（`mzi_...`）；也可用环境变量 `MIRAZERO_INTEGRATION_KEY` |
 | `autoStart` | `false` | 插件加载后自动轮询 |
 | `models` | `[]` | 只回复这些模型；空 = 全部 |
 | `workspacePath` | `$DSH_HOME/mirazero` | MiraZero 工作区目录 |
@@ -210,6 +214,8 @@ mirazero_character { patch: { "personality": "更温和一些", "lorebook": [] }
 ```text
 GET  /status
 GET  /health
+GET  /config
+POST /config       { baseUrl, apiKey?, autoStart, clearApiKey? }
 GET  /isolation
 GET  /pending?limit=20
 GET  /audit?limit=50
@@ -246,18 +252,19 @@ node --check index.js
 node --test
 ```
 
-当前覆盖：**31 项测试**，包括
+当前覆盖：**34 项测试**，包括
 
 - 角色卡结构与所有开关、lorebook 命中；
 - 图片 data URL / Anthropic base64 / 远程 URL / 私网拒绝；
 - 文本格式保留、工具消息丢弃；
-- 用户 API Key 的 Bearer / `x-api-key`、`/api/integrations/v1/models`、`/api/plugin/dsh/*`；
+- 模型绑定 Key 的 Bearer / `x-api-key`、`/api/integrations/v1/models`、`/api/plugin/dsh/*`；
+- 设置页读写、Key 掩码、`settings.section` 注册；
 - 缺少 DSH 补丁时的可操作错误；
 - 每个请求独立 Session、工作区归属、`allow: []`、guard、system prompt 注入、图片 part。
 
 已在新版 MiraZero（`origin/dev`，Nuxt 4.4.8）本地构建 + DSH 补丁上跑过真实链路：
 
-1. 登录创建模型与 **用户 API Key**（`mz_...`）；
+1. 登录创建模型，并在模型设置中创建 **绑定该模型的接入 Key**（`mzi_...`）；
 2. `GET /api/integrations/v1/models` 用该 Key 返回模型；
 3. 公开 `POST /v1/chat/completions`（含图片）产生 pending；
 4. `GET /api/plugin/dsh/requests` 用同一 Key 取到完整 `payload`，图片存在；
@@ -267,6 +274,6 @@ node --test
 ## 已知限制
 
 - 新版 MiraZero 删除了旧 AstrBot 提供方接口；没有 `mirazero-patch` 时插件会报 `DSH_PATCH_MISSING`，不会退回预览。
-- 补丁按用户 API Key 过滤 pending，并允许管理员查看全部；Key 等同该账号的运营权限，保管好。
+- 补丁按模型绑定 Key 过滤 pending；Key 只覆盖绑定的那个模型，撤销立即失效。
 - 公开模型必须属于该 Key 对应的站点账号，且 `api.enabled = false`、`public = true`、`status = online`。
 - 角色卡与功能开关不引入跨会话记忆；跨请求连续性由客户端历史与 MiraZero `history` 提供。

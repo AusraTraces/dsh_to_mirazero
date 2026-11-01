@@ -1,17 +1,19 @@
 {
   "name": "dsh-mirazero-bridge",
-  "version": "0.3.0",
-  "description": "Connect a DeepSeek Harness role-play character to a MiraZero site with a MiraZero user API key. Each public request gets its own isolated DSH Session in the MiraZero workspace, with text, images, a structured character card, and no executable tools.",
+  "version": "0.5.0",
+  "description": "Connect a DeepSeek Harness role-play character to a MiraZero model with a model-bound integration key. One isolated Session per public request, text and images, structured character card, no executable tools, and a Settings page for the connection and feature switches.",
   "type": "module",
   "main": "index.js",
   "exports": {
     ".": "./index.js",
+    "./client": "./client.js",
     "./package.json": "./package.json",
     "./locale/*.json": "./locale/*.json",
     "./icon": "./icon.svg"
   },
   "files": [
     "index.js",
+    "client.js",
     "lib",
     "cordis.patch.yml",
     "locale",
@@ -38,6 +40,10 @@
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
     }
   }
 }

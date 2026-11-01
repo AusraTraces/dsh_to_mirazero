@@ -12,4 +12,5 @@ Thumbs.db
 # DSH plugin runtime state
 dsh-mirazero-bridge/character.json
 dsh-mirazero-bridge/features.json
+dsh-mirazero-bridge/connection.json
 dsh-mirazero-bridge/audit.jsonl

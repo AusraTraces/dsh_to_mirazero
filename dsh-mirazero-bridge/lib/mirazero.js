@@ -32,7 +32,12 @@ export class MiraZeroApi {
 
   constructor(options) {
     const baseUrl = String(options.baseUrl || '').trim()
-    this.#baseUrl = baseUrl ? normalizeBaseUrl(baseUrl) : ''
+    try {
+      this.#baseUrl = baseUrl ? normalizeBaseUrl(baseUrl) : ''
+    } catch {
+      // Keep the invalid value visible so the settings page can repair it.
+      this.#baseUrl = baseUrl
+    }
     this.#apiKey = String(options.apiKey || '').trim()
     this.#timeoutMs = Number(options.timeoutMs) || 30000
     this.#logger = options.logger
@@ -59,6 +64,7 @@ export class MiraZeroApi {
       mode: 'dsh',
       fullContext: true,
       pending: Number(status?.pending) || 0,
+      model: String(status?.modelName || status?.modelId || ''),
       baseUrl: safeUrl(this.#baseUrl),
       hasKey: this.hasKey,
     }

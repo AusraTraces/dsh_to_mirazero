@@ -39,7 +39,7 @@ export function apply(ctx, config = {}) {
       bridge.logger.error(`registration failed: ${describeError(error)}`)
     }
 
-    if (config.autoStart === true) {
+    if (bridge.config.autoStart === true) {
       void (async () => {
         if (!isConfigured(bridge.config)) {
           bridge.logger.warn(`autoStart skipped; missing ${missingConfig(bridge.config).join(', ')}`)

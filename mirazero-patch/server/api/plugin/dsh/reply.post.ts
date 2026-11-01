@@ -1,8 +1,8 @@
 import { finishRequest, getPendingRequest, pushToRequest } from '../../../utils/requestManager'
-import { ownsRequest, requireDshUser } from './_auth'
+import { ownsRequest, requireDshIntegration } from './_auth'
 
 export default defineEventHandler(async (event) => {
-  const user = await requireDshUser(event)
+  const auth = await requireDshIntegration(event)
   const body = await readBody(event)
   const id = String(body?.id || '').trim()
   const response = String(body?.response || '')
@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Response is required' })
   }
   const pending = getPendingRequest(id)
-  if (!ownsRequest(user, pending)) {
+  if (!ownsRequest(auth, pending)) {
     throw createError({ statusCode: 404, statusMessage: 'Request not found' })
   }
 

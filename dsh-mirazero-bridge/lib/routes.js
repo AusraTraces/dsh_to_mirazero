@@ -37,6 +37,14 @@ async function handle(req, res, bridge) {
       const status = bridge.status()
       return json(res, 200, { ok: true, configured: status.configured, running: status.running })
     }
+    if (req.method === 'GET' && path === '/config') {
+      return json(res, 200, { ok: true, config: bridge.publicConfig() })
+    }
+    if (req.method === 'POST' && path === '/config') {
+      const body = await readJson(req)
+      const status = await bridge.setConnection(body)
+      return json(res, 200, { ok: true, config: bridge.publicConfig(), status })
+    }
     if (req.method === 'GET' && path === '/isolation') {
       return json(res, 200, isolationManifest())
     }
@@ -77,7 +85,8 @@ async function handle(req, res, bridge) {
     }
     return json(res, 404, { error: `unknown route ${req.method} ${path}` })
   } catch (error) {
-    return json(res, 500, { error: describeError(error) })
+    const status = error?.name === 'MiraZeroError' ? 400 : Number(error?.statusCode) || 500
+    return json(res, status, { error: describeError(error) })
   }
 }
 
