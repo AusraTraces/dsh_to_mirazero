@@ -1,10 +1,10 @@
 /**
  * MiraZero third-party client for the DSH provider bridge.
  *
- * New MiraZero versions authenticate integrations with a **user API key**
- * (`mz_...`) created on the Integrations page. The same key is accepted by the
- * standard `/api/integrations/v1` model API and by the companion
- * `/api/plugin/dsh/*` endpoints that expose full pending payloads.
+ * New MiraZero versions authenticate integrations with a **model-bound
+ * integration key** (`mzi_...`) created in model settings. The same key is
+ * accepted by the standard `/api/integrations/v1` model API and by the
+ * companion `/api/plugin/dsh/*` endpoints that expose full pending payloads.
  *
  * Only fixed `/api/plugin/*` and `/api/integrations/*` paths on the configured
  * origin are requested; redirects are refused.
