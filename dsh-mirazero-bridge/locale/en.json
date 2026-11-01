@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "MiraZero Character Bridge",
+    "description": "Publishes a DSH role-play card on MiraZero. Every public request gets its own isolated Session in the MiraZero workspace, accepts text and images, and has no local tools."
+  }
+}

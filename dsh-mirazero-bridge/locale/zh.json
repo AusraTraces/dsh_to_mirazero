@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "MiraZero 角色桥",
+    "description": "把 DSH 角色卡接入 MiraZero，自动回复公开请求；每个请求在 MiraZero 工作区独立开一个会话，可收文字与图片，但没有本机工具。"
+  }
+}
