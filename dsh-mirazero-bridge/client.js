@@ -193,12 +193,10 @@
   `
 
   function currentText() {
-    try {
-      const language = `${document.documentElement?.lang || ''}${navigator.language || ''}`.toLowerCase()
-      return language.startsWith('zh') ? COPY.zh : COPY.en
-    } catch {
-      return COPY.zh
-    }
+    // This plugin's settings page is Chinese by default. The host UI language
+    // must not flip it to English: users asked for a Chinese control surface,
+    // and technical values (baseUrl, mzi_...) stay readable either way.
+    return COPY.zh
   }
 
   function installStyles() {
@@ -212,6 +210,23 @@
     } catch {
       return () => {}
     }
+  }
+
+  function friendlyError(value) {
+    const text = String(value || '')
+    if (!text) return ''
+    if (text.includes('DSH_PATCH_MISSING') || text.includes('mirazero-patch')) return '站点缺少 DSH 提供方补丁'
+    if (text.includes('401') || /integration key/i.test(text)) return '接入 Key 无效或已撤销'
+    if (text.includes('403')) return '当前 Key 无权访问该模型'
+    if (/fetch failed|ECONN|ENOTFOUND|timed? ?out/i.test(text)) return '连接站点失败'
+    return text
+  }
+
+  function missingLabel(value) {
+    const text = String(value || '')
+    if (text.includes('baseUrl')) return '站点地址'
+    if (text.includes('apiKey')) return '第三方接入 Key'
+    return text
   }
 
   async function request(path, options) {
@@ -281,8 +296,7 @@
             disabled: props.disabled === true,
             onChange: (event) => props.onChange(event.target.checked),
           }),
-          h('span', null, props.label),
-          h('code', null, props.name),
+          h('span', { title: props.name }, props.label),
         )
       }
 
@@ -487,9 +501,11 @@
               { className: 'status' },
               h('span', null, h('i', { className: `dot${running ? ' on' : ''}` }), running ? t.running : t.stopped),
               h('span', null, configured ? t.configured : t.unconfigured),
-              Array.isArray(config.missing) && config.missing.length ? h('span', null, `${t.missing}: ${config.missing.join(', ')}`) : null,
+              Array.isArray(config.missing) && config.missing.length
+                ? h('span', null, `${t.missing}: ${config.missing.map(missingLabel).join('、')}`)
+                : null,
               h('span', null, `${t.fullContext}: ${config.fullContext === true ? '✓' : '—'}`),
-              config.lastError ? h('span', null, `${t.lastError}: ${config.lastError}`) : null,
+              config.lastError ? h('span', null, `${t.lastError}: ${friendlyError(config.lastError)}`) : null,
             ),
             state.notice ? h('p', { className: 'notice ok' }, state.notice) : null,
             state.error ? h('p', { className: 'notice err', role: 'alert' }, state.error) : null,

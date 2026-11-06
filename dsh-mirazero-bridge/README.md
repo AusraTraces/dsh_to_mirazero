@@ -72,6 +72,8 @@ powershell -ExecutionPolicy Bypass -File E:\dshtomirazero\dsh-mirazero-bridge\in
 - **功能开关**：图片、自动检索、角色卡、lorebook 等逐项开关；
 - **角色卡**：直接编辑名字、简介、性格、说话方式并保存。
 
+设置页固定使用中文，不跟随 DSH 的英文界面切换。
+
 保存后立即生效；正在轮询时，连接变化会自动重启桥接。设置写入
 `$DSH_HOME/mirazero-bridge/connection.json` 与 `features.json`，优先于 YAML 默认值。
 
