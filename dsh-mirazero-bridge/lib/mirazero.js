@@ -59,12 +59,18 @@ export class MiraZeroApi {
 
   async probe() {
     const status = await this.status()
+    if (!status || status.ok !== true || status.fullContext !== true) {
+      throw new MiraZeroError(
+        'MiraZero did not confirm the DSH provider API; install mirazero-patch/server/api/plugin/dsh and rebuild the site',
+        { code: 'DSH_PATCH_MISSING' },
+      )
+    }
     return {
       ok: true,
       mode: 'dsh',
       fullContext: true,
-      pending: Number(status?.pending) || 0,
-      model: String(status?.modelName || status?.modelId || ''),
+      pending: Number(status.pending) || 0,
+      model: String(status.modelName || status.modelId || ''),
       baseUrl: safeUrl(this.#baseUrl),
       hasKey: this.hasKey,
     }
@@ -72,14 +78,19 @@ export class MiraZeroApi {
 
   async requests() {
     const body = await this.#request('/api/plugin/dsh/requests?limit=20')
-    const list = Array.isArray(body) ? body : Array.isArray(body?.requests) ? body.requests : []
-    return list.map((item) => ({ ...item, fullContext: true }))
+    if (!body || !Array.isArray(body.requests)) {
+      throw new MiraZeroError('MiraZero returned no request list; install mirazero-patch/server/api/plugin/dsh and rebuild the site', {
+        code: 'DSH_PATCH_MISSING',
+      })
+    }
+    return body.requests.map((item) => ({ ...item, fullContext: true }))
   }
 
   /** Public + own private online models, through the new integration API. */
   async models() {
     const body = await this.#request('/api/integrations/v1/models')
-    const list = Array.isArray(body?.data) ? body.data : Array.isArray(body?.models) ? body.models : []
+    const list = Array.isArray(body?.data) ? body.data : Array.isArray(body?.models) ? body.models : null
+    if (list === null) throw new MiraZeroError('MiraZero returned an invalid model list', { code: 'INVALID_RESPONSE' })
     return list.map((model) => ({
       id: model.id || model.name || '',
       name: model.name || model.id || '',
@@ -90,7 +101,13 @@ export class MiraZeroApi {
   }
 
   async status() {
-    return this.#request('/api/plugin/dsh/status')
+    const body = await this.#request('/api/plugin/dsh/status')
+    if (!body || typeof body !== 'object' || body.ok !== true) {
+      throw new MiraZeroError('MiraZero did not return a DSH status object; install mirazero-patch/server/api/plugin/dsh and rebuild the site', {
+        code: 'DSH_PATCH_MISSING',
+      })
+    }
+    return body
   }
 
   async reply(id, response) {
@@ -136,6 +153,22 @@ export class MiraZeroApi {
       throw new MiraZeroError(message, {
         status: response.status,
         code: response.status === 401 || response.status === 403 ? 'UNAUTHORIZED' : 'HTTP_ERROR',
+        body,
+      })
+    }
+    if (!body || typeof body !== 'object') {
+      const contentType = response.headers.get('content-type') || ''
+      const html = contentType.includes('text/html')
+        || (typeof body === 'string' && body.trimStart().startsWith('<'))
+      if (html && path.startsWith('/api/plugin/dsh/')) {
+        throw new MiraZeroError(
+          'MiraZero returned an HTML page for the DSH provider API; install mirazero-patch/server/api/plugin/dsh and rebuild the site',
+          { status: response.status, code: 'DSH_PATCH_MISSING', body },
+        )
+      }
+      throw new MiraZeroError('MiraZero returned a non-JSON response', {
+        status: response.status,
+        code: 'INVALID_RESPONSE',
         body,
       })
     }

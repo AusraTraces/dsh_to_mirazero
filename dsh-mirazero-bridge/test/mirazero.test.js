@@ -65,6 +65,18 @@ test('reply uses the DSH provider endpoint', async () => {
   assert.equal(JSON.parse(call.body).response, 'hello')
 })
 
+test('an HTML SPA fallback is detected as a missing DSH patch', async () => {
+  const api = new MiraZeroApi({
+    baseUrl: 'https://mz.example',
+    apiKey: 'mzi_secret',
+    fetchImpl: async () => new Response('<!doctype html><html></html>', {
+      status: 200,
+      headers: { 'content-type': 'text/html; charset=utf-8' },
+    }),
+  })
+  await assert.rejects(() => api.status(), /HTML|DSH_PATCH_MISSING/)
+})
+
 test('a missing DSH patch produces an actionable error', async () => {
   const api = new MiraZeroApi({
     baseUrl: 'https://mz.example',

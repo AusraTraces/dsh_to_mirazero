@@ -126,7 +126,7 @@ cd dsh-mirazero-bridge
 node --test
 ```
 
-34 项测试覆盖角色卡开关、lorebook、图片、私网拦截、模型绑定 Key、DSH 补丁缺失错误、
+35 项测试覆盖角色卡开关、lorebook、图片、私网拦截、模型绑定 Key、DSH 补丁缺失错误、
 每个请求独立 Session、`allow: []`、guard、system prompt 注入、图片 part、设置页读写与
 `settings.section` 注册。
 

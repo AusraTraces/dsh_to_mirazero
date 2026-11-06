@@ -254,7 +254,7 @@ node --check index.js
 node --test
 ```
 
-当前覆盖：**34 项测试**，包括
+当前覆盖：**35 项测试**，包括
 
 - 角色卡结构与所有开关、lorebook 命中；
 - 图片 data URL / Anthropic base64 / 远程 URL / 私网拒绝；
@@ -272,6 +272,38 @@ node --test
 4. `GET /api/plugin/dsh/requests` 用同一 Key 取到完整 `payload`，图片存在；
 5. `POST /api/plugin/dsh/reply` 回复；
 6. 公开调用收到 `200`，内容为回复文本。
+
+## 常见问题
+
+### MiraZero 发消息，DSH 不显示会话也不回复
+
+先看 **设置 → MiraZero** 的“上次错误”，或在对话里运行 `mirazero_status`。
+
+如果站点返回的是 **HTML 页面** 而不是 JSON，说明站点还没有部署提供方补丁：
+
+```text
+MiraZero returned an HTML page for the DSH provider API;
+install mirazero-patch/server/api/plugin/dsh and rebuild the site
+```
+
+验证：
+
+```bash
+curl -H "Authorization: Bearer mzi_xxx" \
+  https://api.huahouse.asia/api/plugin/dsh/status
+```
+
+- 返回 `{"ok":true,"pending":...,"fullContext":true,"modelId":"...","modelName":"..."}`：补丁已生效；
+- 返回 `<!DOCTYPE html>`：补丁缺失，请求根本没有进入桥接。
+
+修复：把 `mirazero-patch/server/api/plugin/dsh/` 复制到站点仓库同路径，重新
+`pnpm build` 并重启服务，再在设置页点“检查已保存连接”。
+
+### 检查连接显示 Key 无效
+
+- Key 必须是 **模型设置 → 第三方接入 → Agent 平台** 创建的 `mzi_...`；
+- 普通用户 API Key（`mz_...`）不能用于这个接口；
+- 模型必须已保存、在线，且属于 Key 所属账号。
 
 ## 已知限制
 

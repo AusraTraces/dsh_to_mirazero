@@ -112,7 +112,12 @@ export class MiraZeroBridge {
       throw new Error(`MiraZero bridge is not configured: missing ${missingConfig(this.#config).join(', ')}`)
     }
     await this.#ensureWorkspace()
-    this.#lastProbe = await this.#api.probe()
+    try {
+      this.#lastProbe = await this.#api.probe()
+    } catch (error) {
+      this.#lastError = describeApiError(error)
+      throw error
+    }
     this.#running = true
     this.#startedAt = nowIso()
     this.#lastError = null
