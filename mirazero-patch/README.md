@@ -21,18 +21,61 @@ Key 一撤销，DSH 桥接立即失效，不影响其他模型或普通用户 Ke
 
 ## 安装
 
-把 `server/api/plugin/dsh/` 整个目录复制到 MiraZero 仓库同路径：
+补丁是 **MiraZero 服务端文件**，必须放到 MiraZero 服务器，不是放到 DSH 电脑上。
+
+### 方法 A：上传脚本并执行（推荐）
+
+在本地仓库目录执行：
 
 ```bash
-cp -r mirazero-patch/server/api/plugin/dsh \
-      /path/to/mirazero/server/api/plugin/dsh
+scp -r mirazero-patch root@122.228.216.95:/opt/dsh-mirazero-patch
+ssh root@122.228.216.95
 ```
 
-然后重新构建并重启站点：
+登录服务器后：
 
 ```bash
-pnpm build
-node .output/server/index.mjs
+# 确认 MiraZero 实际目录（示例是 /opt/mirazero）
+ls /opt/mirazero/package.json
+
+sudo systemctl stop mirazero
+bash /opt/dsh-mirazero-patch/install.sh /opt/mirazero
+sudo systemctl restart mirazero
+sudo systemctl status mirazero --no-pager
+```
+
+`install.sh` 会：复制 `server/api/plugin/dsh` → `pnpm install` →
+重建 `better-sqlite3` → `pnpm build`。它不会自动停服务，所以上面先 stop。
+
+如果服务用 PM2：
+
+```bash
+pm2 stop mirazero
+bash /opt/dsh-mirazero-patch/install.sh /opt/mirazero
+pm2 restart mirazero
+```
+
+### 方法 B：手动复制
+
+```bash
+cd /opt/mirazero
+sudo systemctl stop mirazero
+mkdir -p server/api/plugin/dsh
+cp -a /opt/dsh-mirazero-patch/server/api/plugin/dsh/. server/api/plugin/dsh/
+pnpm install --frozen-lockfile
+npm_config_build_from_source=true pnpm rebuild better-sqlite3
+pnpm run build
+sudo systemctl restart mirazero
+```
+
+### 方法 C：Docker
+
+如果 MiraZero 跑在 Docker 里，补丁必须进镜像，不能只复制到容器：
+
+```bash
+# 在 Dockerfile 的源码层加入 server/api/plugin/dsh/ 后
+docker compose build --no-cache
+docker compose up -d
 ```
 
 ## 验证
@@ -42,7 +85,14 @@ curl -H "Authorization: Bearer mzi_xxx" \
   https://your-mirazero.example/api/plugin/dsh/status
 ```
 
-返回 `{"ok":true,"pending":0,"fullContext":true,"modelId":"...","modelName":"..."}` 即生效。
+返回 JSON 即生效：
+
+```json
+{"ok":true,"pending":0,"fullContext":true,"modelId":"...","modelName":"..."}
+```
+
+如果仍然返回 `<!DOCTYPE html>`，说明服务还在跑旧的 `.output`，或者补丁没有进镜像；
+检查是否执行了 `pnpm build` 并重启了服务。
 
 已在 `origin/dev` 的 `deb295d`（Nuxt 4.4.8）上构建并通过完整链路验证：
 公开请求 → 模型绑定 Key 读取完整 pending（含图片）→ 回复 → 客户端收到 200。

@@ -55,13 +55,26 @@ API Key:  mzi_...
 ### 2. 安装提供方补丁
 
 新版 MiraZero 只提供客户端调用接口，因此需要把
-[`mirazero-patch/server/api/plugin/dsh/`](mirazero-patch/server/api/plugin/dsh/)
-复制到 MiraZero 仓库同路径，然后重新构建并重启站点：
+[`mirazero-patch/`](mirazero-patch/) 上传到 **MiraZero 服务器**并重新构建。
+
+本地执行：
 
 ```bash
-pnpm build
-node .output/server/index.mjs
+scp -r mirazero-patch root@122.228.216.95:/opt/dsh-mirazero-patch
+ssh root@122.228.216.95
 ```
+
+服务器上：
+
+```bash
+ls /opt/mirazero/package.json
+sudo systemctl stop mirazero
+bash /opt/dsh-mirazero-patch/install.sh /opt/mirazero
+sudo systemctl restart mirazero
+```
+
+脚本会复制 `server/api/plugin/dsh`、`pnpm install`、重建 `better-sqlite3`、`pnpm build`。
+手动步骤和 Docker 方式见 [mirazero-patch/README.md](mirazero-patch/README.md)。
 
 补丁使用与 `/api/integrations/v1` 相同的 **模型绑定 Key** 验证（`verifyIntegrationKey`），
 只返回该模型的 pending；撤销 Key 后桥接立即失效。
