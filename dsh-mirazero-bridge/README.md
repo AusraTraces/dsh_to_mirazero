@@ -19,7 +19,7 @@ MiraZero 站点（新版：模型绑定 mzi_ Key + /api/integrations/v1）
    ▼
 dsh-mirazero-bridge
    ├─ 用 baseUrl + 模型绑定 Key 调用补丁接口
-   ├─ DSH 设置 → MiraZero：连接、开关、角色卡可视化编辑
+   ├─ DSH 设置 → MiraZero：连接、启用角色卡、角色卡可视化编辑
    ├─ MiraZero 工作区：每个请求新建一个 Session
    ├─ 角色卡作为 system prompt section（interpolate: false）
    ├─ 图片作为 Session prompt 的 image part
@@ -69,13 +69,12 @@ powershell -ExecutionPolicy Bypass -File E:\dshtomirazero\dsh-mirazero-bridge\in
 - **第三方接入 Key**：`mzi_...`；
 - **自动开始轮询**：打开；
 - **检查连接**：验证 Key 并读取绑定模型；
-- **功能开关**：图片、自动检索、角色卡、lorebook 等逐项开关；
-- **角色卡**：直接编辑名字、简介、性格、说话方式并保存。
+- **角色卡**：一个“启用角色卡”开关，以及名字、简介、性格、说话方式。
 
 设置页固定使用中文，不跟随 DSH 的英文界面切换。
 
 保存后立即生效；正在轮询时，连接变化会自动重启桥接。设置写入
-`$DSH_HOME/mirazero-bridge/connection.json` 与 `features.json`，优先于 YAML 默认值。
+`$DSH_HOME/mirazero-bridge/connection.json` 与 `character.json`，优先于 YAML 默认值。
 
 也可以直接编辑 `~/.dsh/profiles/desktop/cordis.patch.yml`：
 
@@ -137,33 +136,23 @@ curl https://mira.example.com/v1/chat/completions \
 对公开端点稳定有用的部分；没有引入跨会话记忆与好感度，因为 MiraZero 每个请求
 本身就是一个独立 Session。
 
-### 功能开关
+### 唯一的开关：启用角色卡
 
-`features` 里每一项都可以单独开关：
+设置页只保留一个功能开关：
 
 | 开关 | 默认 | 作用 |
 |---|---|---|
-| `characterCard` | 开 | 注入简介/性格/场景/语气/关系/喜好/边界 |
-| `clientCard` | 开 | 使用客户端随请求带来的角色卡，只作资料 |
-| `siteHistory` | 开 | 使用 MiraZero 的 `history` 补足短客户端的历史 |
-| `images` | 开 | 把图片作为 Session 的 image part 发送 |
-| `remoteImages` | 开 | 允许抓取公网图片；回环/私网/链路本地地址直接拒绝 |
-| `lorebook` | 开 | 关键词命中时注入世界设定 |
-| `examples` | 开 | 注入示例对话 |
-| `selfAwareness` | 开 | 注入“你是角色，不是助手”的自我认知 |
-| `postHistory` | 开 | 注入本轮附加要求 |
-| `authorNote` | 开 | 注入作者注 |
-| `firstMessage` | 关 | 没有历史 assistant 时注入角色开场 |
-| `autoSearch` | 开 | 命中检索意图时由插件先检索 |
+| `enabled` | 开 | 开：注入完整角色卡；关：使用中性助手回复 |
 
-运行时也可以改：
+图片、站点历史、lorebook、示例对话、自动检索等能力作为固定行为保留，
+不再暴露成开关。运行时可以改角色卡内容：
 
 ```text
-mirazero_features { patch: { "images": false, "autoSearch": false } }
+mirazero_character { patch: { "enabled": false } }
 mirazero_character { patch: { "personality": "更温和一些", "lorebook": [] } }
 ```
 
-修改会写到 `$DSH_HOME/mirazero-bridge/character.json` 和 `features.json`。
+修改会写到 `$DSH_HOME/mirazero-bridge/character.json`。
 
 ## 配置参考
 
@@ -200,13 +189,12 @@ mirazero_character { patch: { "personality": "更温和一些", "lorebook": [] }
 
 | 工具 | 作用 |
 |---|---|
-| `mirazero_status` | API 模式、是否全量上下文、工作区、会话数、角色与开关 |
+| `mirazero_status` | API 模式、是否全量上下文、工作区、会话数、角色卡状态 |
 | `mirazero_start` / `mirazero_stop` | 启停轮询 |
 | `mirazero_pending` | 查看待回复请求 |
 | `mirazero_answer` | 人工回复并完成一条 |
 | `mirazero_models` | 查看站点模型 |
-| `mirazero_character` | 读取/修改结构化角色卡 |
-| `mirazero_features` | 读取/切换功能开关 |
+| `mirazero_character` | 读取/修改结构化角色卡，含“启用角色卡”开关 |
 | `mirazero_isolation` | 打印隔离墙契约 |
 
 ## 诊断路由
@@ -224,8 +212,6 @@ GET  /audit?limit=50
 GET  /models
 GET  /character
 POST /character
-GET  /features
-POST /features
 POST /start
 POST /stop
 POST /answer       { id, response }
@@ -254,9 +240,9 @@ node --check index.js
 node --test
 ```
 
-当前覆盖：**35 项测试**，包括
+当前覆盖：**34 项测试**，包括
 
-- 角色卡结构与所有开关、lorebook 命中；
+- 角色卡结构与启用开关、lorebook 命中；
 - 图片 data URL / Anthropic base64 / 远程 URL / 私网拒绝；
 - 文本格式保留、工具消息丢弃；
 - 模型绑定 Key 的 Bearer / `x-api-key`、`/api/integrations/v1/models`、`/api/plugin/dsh/*`；
@@ -310,4 +296,4 @@ curl -H "Authorization: Bearer mzi_xxx" \
 - 新版 MiraZero 删除了旧 AstrBot 提供方接口；没有 `mirazero-patch` 时插件会报 `DSH_PATCH_MISSING`，不会退回预览。
 - 补丁按模型绑定 Key 过滤 pending；Key 只覆盖绑定的那个模型，撤销立即失效。
 - 公开模型必须属于该 Key 对应的站点账号，且 `api.enabled = false`、`public = true`、`status = online`。
-- 角色卡与功能开关不引入跨会话记忆；跨请求连续性由客户端历史与 MiraZero `history` 提供。
+- 角色卡不引入跨会话记忆；跨请求连续性由客户端历史与 MiraZero `history` 提供。

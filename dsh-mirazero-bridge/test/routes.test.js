@@ -61,13 +61,13 @@ test('settings routes read and write connection/config without leaking the key',
     assert.equal(saveBody.config.autoStart, true)
     assert.equal(JSON.stringify(saveBody).includes('mzi_new_key'), false)
 
-    const featuresResponse = await fetch(`${base}/.dsh-mirazero-bridge/features`, {
+    const characterResponse = await fetch(`${base}/.dsh-mirazero-bridge/character`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ images: false }),
+      body: JSON.stringify({ enabled: false }),
     })
-    const featuresBody = await featuresResponse.json()
-    assert.equal(featuresBody.features.images, false)
+    const characterBody = await characterResponse.json()
+    assert.equal(characterBody.character.enabled, false)
 
     const badResponse = await fetch(`${base}/.dsh-mirazero-bridge/config`, {
       method: 'POST',

@@ -5,7 +5,6 @@ import { normalizeRequest } from '../lib/guard.js'
 
 const config = {
   character: { name: 'Mira' },
-  features: { images: true, remoteImages: false },
   media: { maxImages: 4, maxImageBytes: 1024 * 1024, fetchTimeoutMs: 1000 },
 }
 
@@ -48,7 +47,7 @@ test('buildPromptParts passes inline images through', async () => {
   assert.equal(result.parts.some((part) => part.type === 'text' && part.text.includes('look')), true)
 })
 
-test('images toggle off drops image parts', async () => {
+test('maxImages 0 drops image parts', async () => {
   const normalized = normalizeRequest(
     {
       type: 'openai',
@@ -62,26 +61,9 @@ test('images toggle off drops image parts', async () => {
   )
   const result = await buildPromptParts({
     normalized,
-    config: { ...config, features: { ...config.features, images: false } },
+    config: { ...config, media: { ...config.media, maxImages: 0 } },
     logger: { warn() {} },
   })
-  assert.equal(result.imageCount, 0)
-  assert.equal(result.dropped, 1)
-})
-
-test('remote images are refused while remoteImages is off', async () => {
-  const normalized = normalizeRequest(
-    {
-      type: 'openai',
-      payload: {
-        messages: [
-          { role: 'user', content: [{ type: 'image_url', image_url: 'https://example.com/a.png' }] },
-        ],
-      },
-    },
-    { maxInputChars: 2000, maxHistoryMessages: 5, includeImages: true },
-  )
-  const result = await buildPromptParts({ normalized, config, logger: { warn() {} } })
   assert.equal(result.imageCount, 0)
   assert.equal(result.dropped, 1)
 })

@@ -20,7 +20,6 @@ const character = normalizeCharacter({
 })
 
 const features = {
-  characterCard: true,
   clientCard: true,
   lorebook: true,
   examples: true,
@@ -57,11 +56,7 @@ test('character prompt includes structured card and isolation', () => {
   assert.match(prompt, /End with a question/)
 })
 
-test('character prompt respects toggles', () => {
-  const noCard = build({ features: { characterCard: false } })
-  assert.ok(!noCard.includes('A calm observer'))
-  assert.match(noCard, /Mira/)
-
+test('character prompt respects internal feature flags', () => {
   const noExamples = build({ features: { examples: false } })
   assert.ok(!noExamples.includes('You are late'))
 

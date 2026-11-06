@@ -5,8 +5,9 @@
  * structured self-cognition and runtime context (dsh-persona-L), a card that
  * is injected as a system-prompt section with `interpolate: false` and a tail
  * echo (dsh-cosplay), and optional lorebook / author-note / post-history
- * blocks. Every character feature has its own toggle; the isolation policy
- * itself is fixed.
+ * blocks. The settings page exposes one switch: whether the character card is
+ * enabled. The remaining prompt blocks are fixed; the isolation policy is
+ * always on.
  */
 import { fence, sanitizeText } from './guard.js'
 
@@ -56,17 +57,15 @@ export function buildSystemPrompt(options) {
     parts.push(SELF_AWARENESS.replaceAll('{name}', name))
   }
 
-  if (features.characterCard) {
-    const card = []
-    if (character.description) card.push(`【角色简介】\n${character.description}`)
-    if (character.personality) card.push(`【性格】\n${character.personality}`)
-    if (character.scenario) card.push(`【当前场景】\n${character.scenario}`)
-    if (character.speechStyle) card.push(`【说话方式】\n${character.speechStyle}`)
-    if (character.relationship) card.push(`【对对方的态度】\n${character.relationship}`)
-    if (character.likes) card.push(`【喜好】\n${character.likes}`)
-    if (character.boundaries) card.push(`【边界】\n${character.boundaries}`)
-    if (card.length) parts.push(card.join('\n\n'))
-  }
+  const card = []
+  if (character.description) card.push(`【角色简介】\n${character.description}`)
+  if (character.personality) card.push(`【性格】\n${character.personality}`)
+  if (character.scenario) card.push(`【当前场景】\n${character.scenario}`)
+  if (character.speechStyle) card.push(`【说话方式】\n${character.speechStyle}`)
+  if (character.relationship) card.push(`【对对方的态度】\n${character.relationship}`)
+  if (character.likes) card.push(`【喜好】\n${character.likes}`)
+  if (character.boundaries) card.push(`【边界】\n${character.boundaries}`)
+  if (card.length) parts.push(card.join('\n\n'))
 
   if (features.examples && character.exampleDialogue) {
     parts.push(`【对话示例 · 只学语气，不要照抄】\n${fence(character.exampleDialogue, options.boundary, 'example_dialogue')}`)

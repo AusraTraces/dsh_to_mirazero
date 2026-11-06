@@ -27,7 +27,7 @@ MiraZero 站点
    ▼
 dsh-mirazero-bridge
    ├─ baseUrl + 模型绑定 Key（mzi_...）
-   ├─ DSH 设置 → MiraZero：可视化连接与功能开关
+   ├─ DSH 设置 → MiraZero：可视化连接与角色卡开关
    ├─ MiraZero 工作区：每个请求新建一个 DSH Session
    ├─ 角色卡作为 system prompt section（interpolate: false）
    ├─ 图片作为 Session 的 image part
@@ -95,7 +95,7 @@ powershell -ExecutionPolicy Bypass -File .\dsh-mirazero-bridge\install.ps1
     autoStart: true
 ```
 
-设置页里的连接和功能开关会保存到 `$DSH_HOME/mirazero-bridge/`，优先于 YAML 默认值。
+设置页里的连接和角色卡设置会保存到 `$DSH_HOME/mirazero-bridge/`，优先于 YAML 默认值。
 
 然后在对话中：
 
@@ -126,7 +126,7 @@ cd dsh-mirazero-bridge
 node --test
 ```
 
-35 项测试覆盖角色卡开关、lorebook、图片、私网拦截、模型绑定 Key、DSH 补丁缺失错误、
+34 项测试覆盖角色卡开关、lorebook、图片、私网拦截、模型绑定 Key、DSH 补丁缺失错误、
 每个请求独立 Session、`allow: []`、guard、system prompt 注入、图片 part、设置页读写与
 `settings.section` 注册。
 

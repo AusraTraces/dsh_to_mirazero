@@ -30,7 +30,7 @@ export async function buildPromptParts(options) {
     if (text) parts.push({ type: 'text', text })
 
     for (const image of message.images) {
-      if (!config.features.images || imageCount >= config.media.maxImages) {
+      if (imageCount >= config.media.maxImages) {
         dropped += 1
         continue
       }
@@ -68,7 +68,7 @@ export async function resolveImage(image, config, logger) {
     return { mediaType: image.mediaType, data, name: image.name }
   }
 
-  if (!config.features.remoteImages || image.kind !== 'remote') return null
+  if (image.kind !== 'remote') return null
   return fetchRemoteImage(image, config, logger)
 }
 

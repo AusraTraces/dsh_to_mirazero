@@ -4,6 +4,23 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { clampInt } from './util.js'
 
+/**
+ * Internal, fixed behaviour. Only the character-card switch is exposed in the
+ * settings page; these values keep images, history, lorebook and examples on.
+ */
+export const DEFAULT_FEATURES = {
+  clientCard: true,
+  siteHistory: true,
+  images: true,
+  remoteImages: true,
+  lorebook: true,
+  examples: true,
+  selfAwareness: true,
+  postHistory: true,
+  authorNote: true,
+  firstMessage: false,
+}
+
 const DEFAULT_CHARACTER = {
   name: 'Mira',
   description: 'Mira 是一个冷静、敏锐、略带疏离感的角色。她习惯先观察再开口，对感兴趣的人会多问一句。',
@@ -24,7 +41,6 @@ export function loadConfig(raw = {}, env = process.env) {
   const search = raw.search && typeof raw.search === 'object' ? raw.search : {}
   const isolation = raw.isolation && typeof raw.isolation === 'object' ? raw.isolation : {}
   const media = raw.media && typeof raw.media === 'object' ? raw.media : {}
-  const features = raw.features && typeof raw.features === 'object' ? raw.features : {}
   const character = raw.character && typeof raw.character === 'object' ? raw.character : {}
   const response = character.response && typeof character.response === 'object' ? character.response : {}
 
@@ -52,20 +68,6 @@ export function loadConfig(raw = {}, env = process.env) {
     workspacePath,
     workspaceTitle: String(raw.workspaceTitle || 'MiraZero').trim() || 'MiraZero',
     character: normalizeCharacter(character),
-    features: {
-      characterCard: features.characterCard !== false,
-      clientCard: features.clientCard !== false,
-      siteHistory: features.siteHistory !== false,
-      images: features.images !== false,
-      remoteImages: features.remoteImages !== false,
-      lorebook: features.lorebook !== false,
-      examples: features.examples !== false,
-      selfAwareness: features.selfAwareness !== false,
-      postHistory: features.postHistory !== false,
-      authorNote: features.authorNote !== false,
-      firstMessage: features.firstMessage === true,
-      autoSearch: features.autoSearch !== false,
-    },
     response: {
       pov: ['first', 'third'].includes(response.pov) ? response.pov : 'first',
       length: ['short', 'medium', 'long'].includes(response.length) ? response.length : 'medium',

@@ -47,30 +47,15 @@
       missing: '缺少',
       lastError: '上次错误',
       fullContext: '完整上下文',
-      features: '功能开关',
-      featuresHint: '修改后立即生效；正在处理的请求使用开启时的设置。',
       character: '角色卡',
-      characterHint: '这些字段会注入每个新会话的 system prompt；留空使用默认值。',
+      enableCharacter: '启用角色卡',
+      characterHint: '关闭后使用中性助手回复；开启后下面字段会注入每个新会话的 system prompt。',
       name: '角色名',
       description: '角色简介',
       personality: '性格',
       speechStyle: '说话方式',
       saveCharacter: '保存角色卡',
       characterSaved: '角色卡已保存',
-      featureNames: {
-        images: '接收图片',
-        remoteImages: '抓取公网图片',
-        autoSearch: '自动检索',
-        siteHistory: '使用站点历史',
-        clientCard: '使用客户端角色卡',
-        characterCard: '注入角色卡',
-        lorebook: '世界设定',
-        examples: '对话示例',
-        selfAwareness: '角色自我认知',
-        postHistory: '本轮附加要求',
-        authorNote: '作者注',
-        firstMessage: '角色开场',
-      },
       loading: '读取中…',
       banner: '保存后立即生效；正在轮询时，连接变化会自动重启桥接。',
     },
@@ -108,49 +93,19 @@
       missing: 'Missing',
       lastError: 'Last error',
       fullContext: 'Full context',
-      features: 'Features',
-      featuresHint: 'Applied immediately; the request already in flight keeps the values it started with.',
       character: 'Character card',
-      characterHint: 'Injected into each new Session system prompt; empty fields use defaults.',
+      enableCharacter: 'Enable character card',
+      characterHint: 'When off, replies use a neutral assistant. When on, the fields below enter every new Session system prompt.',
       name: 'Name',
       description: 'Description',
       personality: 'Personality',
       speechStyle: 'Speech style',
       saveCharacter: 'Save character card',
       characterSaved: 'Character card saved',
-      featureNames: {
-        images: 'Images',
-        remoteImages: 'Remote images',
-        autoSearch: 'Auto search',
-        siteHistory: 'Site history',
-        clientCard: 'Client card',
-        characterCard: 'Character card',
-        lorebook: 'Lorebook',
-        examples: 'Examples',
-        selfAwareness: 'Self-awareness',
-        postHistory: 'Post-history',
-        authorNote: 'Author note',
-        firstMessage: 'First message',
-      },
       loading: 'Loading…',
       banner: 'Changes apply immediately; a running bridge restarts when the connection changes.',
     },
   }
-
-  const FEATURE_KEYS = [
-    'images',
-    'remoteImages',
-    'autoSearch',
-    'siteHistory',
-    'clientCard',
-    'characterCard',
-    'lorebook',
-    'examples',
-    'selfAwareness',
-    'postHistory',
-    'authorNote',
-    'firstMessage',
-  ]
 
   const STYLES = `
 .dsh-mz { display:flex; flex-direction:column; gap:22px; max-width:680px; font-size:13px; line-height:1.5; color:var(--dsw-alias-label-primary,#1f1f1f); }
@@ -187,9 +142,6 @@
 .dsh-mz .notice { font-size:12px; line-height:1.6; }
 .dsh-mz .notice.ok { color:var(--dsw-alias-status-success,#2f8a3c); }
 .dsh-mz .notice.err { color:var(--dsw-alias-status-danger,#c0392b); }
-.dsh-mz .feature-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:8px 16px; }
-.dsh-mz .feature { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--dsw-alias-label-secondary,#444); }
-.dsh-mz .feature code { font-size:11px; color:var(--dsw-alias-label-tertiary,#888); }
   `
 
   function currentText() {
@@ -286,20 +238,6 @@
         )
       }
 
-      function Feature(props) {
-        return h(
-          'label',
-          { className: 'feature' },
-          h('input', {
-            type: 'checkbox',
-            checked: props.checked === true,
-            disabled: props.disabled === true,
-            onChange: (event) => props.onChange(event.target.checked),
-          }),
-          h('span', { title: props.name }, props.label),
-        )
-      }
-
       function MiraZeroSettings() {
         const [state, setState] = useState({
           loading: true,
@@ -307,16 +245,14 @@
           error: '',
           notice: '',
           config: {},
-          features: {},
           character: {},
           apiKey: '',
         })
 
         const load = useCallback(async () => {
           try {
-            const [config, features, character] = await Promise.all([
+            const [config, character] = await Promise.all([
               request(`${PREFIX}/config`),
-              request(`${PREFIX}/features`),
               request(`${PREFIX}/character`),
             ])
             setState((prev) => ({
@@ -324,7 +260,6 @@
               loading: false,
               error: '',
               config: config?.config || {},
-              features: features?.features || {},
               character: character?.character || {},
             }))
           } catch (error) {
@@ -407,20 +342,23 @@
             setState((prev) => ({ ...prev, busy: '' }))
           })
 
-        const toggleFeature = async (key, value) => {
-          const previous = state.features
-          const next = { ...previous, [key]: value }
-          setState((prev) => ({ ...prev, features: next }))
+        const toggleCharacter = async (enabled) => {
+          const previous = state.character.enabled
+          setState((prev) => ({ ...prev, character: { ...prev.character, enabled } }))
           try {
-            const result = await request(`${PREFIX}/features`, {
+            const result = await request(`${PREFIX}/character`, {
               method: 'POST',
-              body: JSON.stringify(next),
+              body: JSON.stringify({ enabled }),
             })
-            setState((prev) => ({ ...prev, features: result?.features || next }))
+            setState((prev) => ({
+              ...prev,
+              character: result?.character || prev.character,
+              notice: t.characterSaved,
+            }))
           } catch (error) {
             setState((prev) => ({
               ...prev,
-              features: previous,
+              character: { ...prev.character, enabled: previous },
               error: `${t.actionFailed}: ${error instanceof Error ? error.message : String(error)}`,
             }))
           }
@@ -443,7 +381,6 @@
         if (state.loading) return h('div', { className: 'dsh-mz' }, h('p', { className: 'muted' }, t.loading))
 
         const config = state.config || {}
-        const features = state.features || {}
         const character = state.character || {}
         const disabled = state.busy !== ''
         const configured = config.configured === true
@@ -514,28 +451,19 @@
           h(
             'div',
             { className: 'group' },
-            h('h4', null, t.features),
-            h('p', { className: 'hint' }, t.featuresHint),
-            h(
-              'div',
-              { className: 'feature-grid' },
-              ...FEATURE_KEYS.map((key) =>
-                h(Feature, {
-                  key,
-                  name: key,
-                  label: t.featureNames?.[key] || key,
-                  checked: features[key] !== false,
-                  disabled,
-                  onChange: (value) => toggleFeature(key, value),
-                }),
-              ),
-            ),
-          ),
-          h(
-            'div',
-            { className: 'group' },
             h('h4', null, t.character),
             h('p', { className: 'hint' }, t.characterHint),
+            h(
+              'label',
+              { className: 'check' },
+              h('input', {
+                type: 'checkbox',
+                checked: character.enabled !== false,
+                disabled,
+                onChange: (event) => toggleCharacter(event.target.checked),
+              }),
+              h('span', null, t.enableCharacter),
+            ),
             h(Field, {
               id: 'dsh-mz-name',
               label: t.name,

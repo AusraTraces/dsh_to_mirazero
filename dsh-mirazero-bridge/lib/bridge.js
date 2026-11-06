@@ -10,7 +10,7 @@ import { join } from 'node:path'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { MiraZeroApi, describeApiError, normalizeBaseUrl } from './mirazero.js'
-import { loadConfig, isConfigured, missingConfig, normalizeCharacter } from './config.js'
+import { DEFAULT_FEATURES, loadConfig, isConfigured, missingConfig, normalizeCharacter } from './config.js'
 import { Logger } from './log.js'
 import { maybeSearch } from './search.js'
 import { buildPromptParts } from './media.js'
@@ -54,10 +54,7 @@ export class MiraZeroBridge {
       ...this.#config.character,
       ...readJson(join(this.#config.stateDir, 'character.json')),
     })
-    this.#features = {
-      ...this.#config.features,
-      ...readJson(join(this.#config.stateDir, 'features.json')),
-    }
+    this.#features = { ...DEFAULT_FEATURES }
     this.#api = new MiraZeroApi({
       baseUrl: this.#config.baseUrl,
       apiKey: this.#config.apiKey,
@@ -580,10 +577,6 @@ export class MiraZeroBridge {
     return { ...this.#character }
   }
 
-  features() {
-    return { ...this.#features }
-  }
-
   /**
    * The connection settings a browser page may see. The key itself never
    * leaves the host: only a "present" flag and its last four characters.
@@ -705,19 +698,6 @@ export class MiraZeroBridge {
     return { ...this.#character }
   }
 
-  setFeatures(patch) {
-    const allowed = Object.keys(this.#features)
-    for (const key of allowed) {
-      if (typeof patch?.[key] === 'boolean') this.#features[key] = patch[key]
-    }
-    try {
-      writeFileSync(join(this.#config.stateDir, 'features.json'), `${JSON.stringify(this.#features, null, 2)}\n`, 'utf8')
-    } catch (error) {
-      this.#logger.warn(`features could not be persisted: ${describeError(error)}`)
-    }
-    return { ...this.#features }
-  }
-
   status() {
     return {
       ok: true,
@@ -737,14 +717,13 @@ export class MiraZeroBridge {
         title: this.#config.workspaceTitle,
       },
       character: { name: this.#character.name, enabled: this.#character.enabled },
-      features: { ...this.#features },
       handled: this.#handled,
       failed: this.#failed,
       inflight: this.#inflight.size,
       sessions: this.#sessions.size,
       recent: this.#recent,
-      search: { ...this.#config.search, enabled: this.#features.autoSearch },
-      images: { ...this.#config.media, enabled: this.#features.images },
+      search: { ...this.#config.search },
+      images: { ...this.#config.media },
       isolation: isolationManifest(),
     }
   }

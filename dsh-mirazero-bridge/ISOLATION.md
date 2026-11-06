@@ -58,9 +58,8 @@ MiraZero pending request
   - 解析 DNS，任一地址落在 loopback/私网/链路本地/ULA 就拒绝；
   - 不跟随重定向；
   - 限制 content-type、字节数、超时。
-- `features.remoteImages: false` 可完全关闭远程抓取。
-- 残余风险：DNS rebinding 在“解析”和“连接”之间仍理论存在；需要绝对严格时关闭
-  远程图片，只收 data URL。
+- 远程图片抓取是固定能力；需要绝对严格时停止桥接，而不是依赖开关。
+- 残余风险：DNS rebinding 在“解析”和“连接”之间仍理论存在。
 
 ## 5. 审计
 
@@ -79,8 +78,8 @@ MiraZero pending request
 |---|---|---|
 | 提示注入 | 请求可以尝试让模型泄露角色卡或系统提示 | 系统提示要求拒绝；不要把密钥写进角色卡 |
 | 幻觉 | 模型可能声称“已执行/已打开网页” | 提示词禁止声称执行；实际没有工具 |
-| 远程图片 SSRF | 公网 URL 可能指向内网 | DNS + 私网地址拒绝 + 不跟随重定向；可关闭 |
-| 检索隐私 | 查询词会发给宿主搜索后端 | `features.autoSearch:false` |
+| 远程图片 SSRF | 公网 URL 可能指向内网 | DNS + 私网地址拒绝 + 不跟随重定向 |
+| 检索隐私 | 查询词会发给宿主搜索后端 | 不需要检索时停止桥接 |
 | 站点可见性 | MiraZero 站方与调用方能看到回复全文 | 不要把本机隐私写进角色卡 |
 | 运营者工具 | `mirazero_*` 能启停桥接、改角色卡 | 只对本机 DSH agent 开放 |
 | 代码演进 | 以后在请求路径加工具或放宽 guard，墙就破了 | 修改 `lib/bridge.js` 必须重读本文件 |
@@ -113,4 +112,4 @@ Select-String -Path lib\bridge.js -Pattern "restrict|guard|systemPrompt.section|
 - 用**独立站点账号**承载公开角色，不要用管理员账号。
 - 角色卡里不要放 API Key、本机路径、真实姓名/地址。
 - 公开前在 MiraZero 侧设置 API Key 校验、限流与内容审核。
-- 需要绝对断网时关闭 `features.autoSearch` 与 `features.remoteImages`。
+- 需要绝对断网时停止桥接，不要启动轮询。

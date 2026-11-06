@@ -60,18 +60,11 @@ async function handle(req, res, bridge) {
       return json(res, 200, { models: await bridge.listModels() })
     }
     if (req.method === 'GET' && path === '/character') {
-      return json(res, 200, { character: bridge.character(), features: bridge.features() })
+      return json(res, 200, { character: bridge.character() })
     }
     if (req.method === 'POST' && path === '/character') {
       const body = await readJson(req)
       return json(res, 200, { character: bridge.setCharacter(body) })
-    }
-    if (req.method === 'GET' && path === '/features') {
-      return json(res, 200, { features: bridge.features() })
-    }
-    if (req.method === 'POST' && path === '/features') {
-      const body = await readJson(req)
-      return json(res, 200, { features: bridge.setFeatures(body) })
     }
     if (req.method === 'POST' && path === '/start') {
       return json(res, 200, await bridge.start())

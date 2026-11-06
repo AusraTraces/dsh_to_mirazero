@@ -35,19 +35,6 @@
           authorNote: ''
           postHistory: ''
           lorebook: []
-        features:
-          characterCard: true
-          clientCard: true
-          siteHistory: true
-          images: true
-          remoteImages: true
-          lorebook: true
-          examples: true
-          selfAwareness: true
-          postHistory: true
-          authorNote: true
-          firstMessage: false
-          autoSearch: true
         response:
           pov: 'first'
           length: 'medium'

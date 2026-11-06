@@ -62,7 +62,7 @@ test('plugin exports the host shape and registers tools, routes, and Session lis
     workspacePath: mkdtempSync(join(tmpdir(), 'mz-ws-')),
   })
 
-  assert.equal(ctx.toolList.length, 9)
+  assert.equal(ctx.toolList.length, 8)
   assert.equal(ctx.routes.length, 1)
   assert.equal(ctx.routes[0].path, '/.dsh-mirazero-bridge')
   assert.ok(ctx.toolList.every((tool) => tool.name.startsWith('mirazero_')))

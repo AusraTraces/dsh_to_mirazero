@@ -3,8 +3,7 @@
  *
  * MiraZero requests never reach these tools: each public request runs in its
  * own restricted Session. These tools are the operator surface for starting the
- * bridge, inspecting pending work, editing the character card, and toggling
- * character features.
+ * bridge, inspecting pending work, and editing the character card.
  */
 import { describeError } from './util.js'
 
@@ -33,7 +32,7 @@ export function createTools(bridge) {
   return [
     tool(
       'mirazero_status',
-      'Show the MiraZero bridge state: API mode, whether full request context is available, the MiraZero workspace, active sessions, character, feature toggles, and isolation manifest.',
+      'Show the MiraZero bridge state: API mode, whether full request context is available, the MiraZero workspace, active sessions, character-card state, and isolation manifest.',
       {},
       async () => bridge.status(),
     ),
@@ -83,21 +82,6 @@ export function createTools(bridge) {
       async (args) => {
         if (!args.patch || Object.keys(args.patch).length === 0) return { character: bridge.character() }
         return { character: bridge.setCharacter(args.patch) }
-      },
-    ),
-    tool(
-      'mirazero_features',
-      'Read or toggle character features: characterCard, clientCard, siteHistory, images, remoteImages, lorebook, examples, selfAwareness, postHistory, authorNote, firstMessage, autoSearch.',
-      {
-        patch: {
-          type: 'object',
-          additionalProperties: true,
-          description: 'Partial boolean map. Omit to read the current toggles.',
-        },
-      },
-      async (args) => {
-        if (!args.patch || Object.keys(args.patch).length === 0) return { features: bridge.features() }
-        return { features: bridge.setFeatures(args.patch) }
       },
     ),
     tool(

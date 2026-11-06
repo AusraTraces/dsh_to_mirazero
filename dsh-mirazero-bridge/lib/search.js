@@ -11,7 +11,7 @@ import { describeError, oneLine } from './util.js'
 export async function maybeSearch(options) {
   const { ctx, text, config, boundary, logger } = options
   const mode = config.search?.mode ?? 'auto'
-  if (!config.features?.autoSearch || mode === 'off') {
+  if (mode === 'off') {
     return { ok: false, skipped: true, reason: 'search disabled' }
   }
   if (!shouldSearch(mode, text)) {
