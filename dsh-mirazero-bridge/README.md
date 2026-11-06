@@ -14,11 +14,11 @@
    ▼
 MiraZero 站点（新版：模型绑定 mzi_ Key + /api/integrations/v1）
    ├─ 客户端调用：/api/integrations/v1/*（仅绑定模型）
-   └─ DSH 提供方补丁：/api/plugin/dsh/*（完整 payload + 历史 + 图片）
+   └─ DSH 提供方接口：/api/plugin/dsh/*（完整 payload + 历史 + 图片）
    │
    ▼
 dsh-mirazero-bridge
-   ├─ 用 baseUrl + 模型绑定 Key 调用补丁接口
+   ├─ 用 baseUrl + 模型绑定 Key 调用提供方接口
    ├─ DSH 设置 → MiraZero：连接、启用角色卡、角色卡可视化编辑
    ├─ MiraZero 工作区：每个请求新建一个 Session
    ├─ 角色卡作为 system prompt section（interpolate: false）
@@ -41,13 +41,11 @@ MiraZero 按原协议返回角色文本
 2. 在该模型下创建专用 Key（`mzi_...`），复制出来；
 3. 复制 Base URL（`https://站点/api/integrations/v1`）与模型 ID。
 
-这个 Key **只绑定当前模型**，同时用于标准 `/api/integrations/v1` 和桥接补丁；
+这个 Key **只绑定当前模型**，同时用于标准 `/api/integrations/v1` 和 DSH 提供方接口；
 撤销 Key 后桥接立即失效，不影响其他模型或普通用户 Key。
 
-新版删除了旧版 AstrBot 插件接口，提供方侧需要补丁。把
-[`mirazero-patch/server/api/plugin/dsh/`](../mirazero-patch/server/api/plugin/dsh/)
-复制到 MiraZero 仓库同路径，重新构建并重启站点。补丁只新增接口，不改现有行为；
-没有补丁时插件会明确报 `DSH_PATCH_MISSING`，不会静默降级。
+DSH 提供方接口由 MiraZero 站点运维启用。站点没有启用时，插件会明确报
+`DSH_PATCH_MISSING`，不会静默空转。
 
 ### 2. 在 DSH 设置里填连接
 
@@ -247,10 +245,10 @@ node --test
 - 文本格式保留、工具消息丢弃；
 - 模型绑定 Key 的 Bearer / `x-api-key`、`/api/integrations/v1/models`、`/api/plugin/dsh/*`；
 - 设置页读写、Key 掩码、`settings.section` 注册；
-- 缺少 DSH 补丁时的可操作错误；
+- 缺少 DSH 提供方接口时的可操作错误；
 - 每个请求独立 Session、工作区归属、`allow: []`、guard、system prompt 注入、图片 part。
 
-已在新版 MiraZero（`origin/dev`，Nuxt 4.4.8）本地构建 + DSH 补丁上跑过真实链路：
+已在新版 MiraZero（`origin/dev`，Nuxt 4.4.8）+ DSH 提供方接口上跑过真实链路：
 
 1. 登录创建模型，并在模型设置中创建 **绑定该模型的接入 Key**（`mzi_...`）；
 2. `GET /api/integrations/v1/models` 用该 Key 返回模型；
@@ -265,11 +263,10 @@ node --test
 
 先看 **设置 → MiraZero** 的“上次错误”，或在对话里运行 `mirazero_status`。
 
-如果站点返回的是 **HTML 页面** 而不是 JSON，说明站点还没有部署提供方补丁：
+如果站点返回的是 **HTML 页面** 而不是 JSON，说明站点还没有启用 DSH 提供方接口：
 
 ```text
-MiraZero returned an HTML page for the DSH provider API;
-install mirazero-patch/server/api/plugin/dsh and rebuild the site
+MiraZero returned an HTML page for the DSH provider API
 ```
 
 验证：
@@ -279,11 +276,10 @@ curl -H "Authorization: Bearer mzi_xxx" \
   https://api.huahouse.asia/api/plugin/dsh/status
 ```
 
-- 返回 `{"ok":true,"pending":...,"fullContext":true,"modelId":"...","modelName":"..."}`：补丁已生效；
-- 返回 `<!DOCTYPE html>`：补丁缺失，请求根本没有进入桥接。
+- 返回 `{"ok":true,"pending":...,"fullContext":true,"modelId":"...","modelName":"..."}`：提供方接口已生效；
+- 返回 `<!DOCTYPE html>`：提供方接口未启用，请求没有进入桥接。
 
-修复：把 `mirazero-patch/server/api/plugin/dsh/` 复制到站点仓库同路径，重新
-`pnpm build` 并重启服务，再在设置页点“检查已保存连接”。
+修复：联系 MiraZero 站点运维启用 DSH 提供方接口，再在设置页点“检查已保存连接”。
 
 ### 检查连接显示 Key 无效
 
@@ -293,7 +289,7 @@ curl -H "Authorization: Bearer mzi_xxx" \
 
 ## 已知限制
 
-- 新版 MiraZero 删除了旧 AstrBot 提供方接口；没有 `mirazero-patch` 时插件会报 `DSH_PATCH_MISSING`，不会退回预览。
-- 补丁按模型绑定 Key 过滤 pending；Key 只覆盖绑定的那个模型，撤销立即失效。
+- 站点没有启用 DSH 提供方接口时，插件会报 `DSH_PATCH_MISSING`，不会退回预览。
+- 提供方接口按模型绑定 Key 过滤 pending；Key 只覆盖绑定的那个模型，撤销立即失效。
 - 公开模型必须属于该 Key 对应的站点账号，且 `api.enabled = false`、`public = true`、`status = online`。
 - 角色卡不引入跨会话记忆；跨请求连续性由客户端历史与 MiraZero `history` 提供。
