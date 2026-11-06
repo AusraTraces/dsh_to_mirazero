@@ -61,7 +61,7 @@ export class MiraZeroApi {
     const status = await this.status()
     if (!status || status.ok !== true || status.fullContext !== true) {
       throw new MiraZeroError(
-        'MiraZero did not confirm the DSH provider API; install mirazero-patch/server/api/plugin/dsh and rebuild the site',
+        'MiraZero did not confirm the DSH provider API; ask the site operator to enable it',
         { code: 'DSH_PATCH_MISSING' },
       )
     }
@@ -79,7 +79,7 @@ export class MiraZeroApi {
   async requests() {
     const body = await this.#request('/api/plugin/dsh/requests?limit=20')
     if (!body || !Array.isArray(body.requests)) {
-      throw new MiraZeroError('MiraZero returned no request list; install mirazero-patch/server/api/plugin/dsh and rebuild the site', {
+      throw new MiraZeroError('MiraZero returned no request list; ask the site operator to enable the DSH provider API', {
         code: 'DSH_PATCH_MISSING',
       })
     }
@@ -103,7 +103,7 @@ export class MiraZeroApi {
   async status() {
     const body = await this.#request('/api/plugin/dsh/status')
     if (!body || typeof body !== 'object' || body.ok !== true) {
-      throw new MiraZeroError('MiraZero did not return a DSH status object; install mirazero-patch/server/api/plugin/dsh and rebuild the site', {
+      throw new MiraZeroError('MiraZero did not return a DSH status object; ask the site operator to enable the DSH provider API', {
         code: 'DSH_PATCH_MISSING',
       })
     }
@@ -146,7 +146,7 @@ export class MiraZeroApi {
       const message = errorText(body, `integration API failed (HTTP ${response.status})`)
       if (response.status === 404 && path.startsWith('/api/plugin/dsh/')) {
         throw new MiraZeroError(
-          `${message}; install mirazero-patch/server/api/plugin/dsh and rebuild the site`,
+          `${message}; ask the site operator to enable the DSH provider API`,
           { status: 404, code: 'DSH_PATCH_MISSING', body },
         )
       }
@@ -162,7 +162,7 @@ export class MiraZeroApi {
         || (typeof body === 'string' && body.trimStart().startsWith('<'))
       if (html && path.startsWith('/api/plugin/dsh/')) {
         throw new MiraZeroError(
-          'MiraZero returned an HTML page for the DSH provider API; install mirazero-patch/server/api/plugin/dsh and rebuild the site',
+          'MiraZero returned an HTML page for the DSH provider API; ask the site operator to enable it',
           { status: response.status, code: 'DSH_PATCH_MISSING', body },
         )
       }

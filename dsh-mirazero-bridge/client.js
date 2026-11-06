@@ -167,7 +167,7 @@
   function friendlyError(value) {
     const text = String(value || '')
     if (!text) return ''
-    if (text.includes('DSH_PATCH_MISSING') || text.includes('mirazero-patch')) return '站点缺少 DSH 提供方补丁'
+    if (text.includes('DSH_PATCH_MISSING')) return '站点缺少 DSH 提供方接口'
     if (text.includes('401') || /integration key/i.test(text)) return '接入 Key 无效或已撤销'
     if (text.includes('403')) return '当前 Key 无权访问该模型'
     if (/fetch failed|ECONN|ENOTFOUND|timed? ?out/i.test(text)) return '连接站点失败'

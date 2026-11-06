@@ -122,7 +122,7 @@ export class MiraZeroBridge {
       `bridge started: workspace=${this.#config.workspacePath} api=${this.#lastProbe.mode} fullContext=${this.#lastProbe.fullContext}`,
     )
     if (!this.#lastProbe.fullContext) {
-      this.#logger.warn('MiraZero did not expose the DSH provider endpoint; install mirazero-patch and rebuild the site')
+      this.#logger.warn('MiraZero did not expose the DSH provider endpoint; ask the site operator to enable it')
     }
     this.#audit({ event: 'bridge.start', workspace: this.#config.workspacePath, api: this.#lastProbe })
     this.#schedule(0)

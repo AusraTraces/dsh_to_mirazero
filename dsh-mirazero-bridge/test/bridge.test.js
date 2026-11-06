@@ -326,7 +326,7 @@ test('a site without the DSH provider patch reports an actionable error', async 
   })
   bridge.install()
   try {
-    await assert.rejects(() => bridge.start(), /mirazero-patch|DSH_PATCH_MISSING/)
+    await assert.rejects(() => bridge.start(), /DSH_PATCH_MISSING|provider API/)
   } finally {
     bridge.stop('test')
     await new Promise((resolve) => server.close(resolve))

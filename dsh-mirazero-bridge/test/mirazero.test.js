@@ -83,7 +83,7 @@ test('a missing DSH patch produces an actionable error', async () => {
     apiKey: 'mzi_secret',
     fetchImpl: async () => response({ statusMessage: 'not found' }, { status: 404 }),
   })
-  await assert.rejects(() => api.requests(), /mirazero-patch|DSH_PATCH_MISSING/)
+  await assert.rejects(() => api.requests(), /DSH_PATCH_MISSING|provider API/)
 })
 
 test('redirect responses fail instead of being followed', async () => {
