@@ -505,6 +505,7 @@
                 ? h('span', null, `${t.missing}: ${config.missing.map(missingLabel).join('、')}`)
                 : null,
               h('span', null, `${t.fullContext}: ${config.fullContext === true ? '✓' : '—'}`),
+              config.model ? h('span', null, `绑定模型: ${config.model}`) : null,
               config.lastError ? h('span', null, `${t.lastError}: ${friendlyError(config.lastError)}`) : null,
             ),
             state.notice ? h('p', { className: 'notice ok' }, state.notice) : null,
