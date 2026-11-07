@@ -13,6 +13,7 @@
         autoStart: false
         models: []
         pollIntervalMs: 3000
+        heartbeatIntervalMs: 30000
         requestTimeoutMs: 30000
         replyTimeoutMs: 180000
         maxInputChars: 24000

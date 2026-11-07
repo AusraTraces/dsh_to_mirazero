@@ -8,8 +8,8 @@ import { MiraZeroBridge } from '../lib/bridge.js'
 
 const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='
 
-function startSite(requests, { missing = false } = {}) {
-  const state = { replies: [], prompts: [], headers: [] }
+function startSite(requests, { missing = false, heartbeat404 = false } = {}) {
+  const state = { replies: [], prompts: [], headers: [], heartbeats: [] }
   const server = createServer((req, res) => {
     const url = new URL(req.url, 'http://localhost')
     let raw = ''
@@ -24,7 +24,18 @@ function startSite(requests, { missing = false } = {}) {
       }
       if (url.pathname === '/api/plugin/dsh/status') {
         res.writeHead(200, { 'content-type': 'application/json' })
-        res.end(JSON.stringify({ ok: true, pending: requests.length, fullContext: true }))
+        res.end(JSON.stringify({ ok: true, pending: requests.length, fullContext: true, modelId: 'model-test', modelName: 'Test Model' }))
+        return
+      }
+      if (url.pathname === '/api/plugin/dsh/heartbeat') {
+        if (heartbeat404) {
+          res.writeHead(404, { 'content-type': 'application/json' })
+          res.end(JSON.stringify({ statusMessage: 'not found' }))
+          return
+        }
+        state.heartbeats.push(body)
+        res.writeHead(200, { 'content-type': 'application/json' })
+        res.end(JSON.stringify({ ok: true, status: body?.status || 'online' }))
         return
       }
       if (url.pathname === '/api/plugin/dsh/requests') {
@@ -229,8 +240,11 @@ test('one public request creates one restricted Session in the MiraZero workspac
     assert.equal(bridge.status().api.fullContext, true)
     assert.equal(bridge.publicConfig().fullContext, true)
     assert.equal(bridge.publicConfig().running, true)
+    assert.equal(state.heartbeats[0].status, 'online')
+    assert.equal(bridge.status().presence.supported, true)
   } finally {
     bridge.stop('test')
+    assert.ok(await waitFor(() => state.heartbeats.some((beat) => beat.status === 'offline')))
     await new Promise((resolve) => server.close(resolve))
   }
 })
@@ -308,6 +322,33 @@ test('settings-page connection changes are persisted and never expose the key', 
   assert.equal(stored.baseUrl, 'https://new.example')
   assert.equal(stored.apiKey, '')
   assert.equal(stored.autoStart, true)
+})
+
+test('an older site without the heartbeat route still starts', async () => {
+  const { server, state } = startSite([], { heartbeat404: true })
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+  const port = server.address().port
+  const bridge = new MiraZeroBridge({
+    ctx: fakeCtx(newBridgeState()),
+    config: {
+      baseUrl: `http://127.0.0.1:${port}`,
+      apiKey: 'mzi_secret',
+      pollIntervalMs: 1500,
+      heartbeatIntervalMs: 30000,
+      stateDir: mkdtempSync(join(tmpdir(), 'mz-bridge-')),
+      workspacePath: mkdtempSync(join(tmpdir(), 'mz-ws-')),
+    },
+  })
+  bridge.install()
+  try {
+    await bridge.start()
+    assert.equal(bridge.status().running, true)
+    assert.equal(bridge.status().presence.supported, false)
+    assert.equal(state.heartbeats.length, 0)
+  } finally {
+    bridge.stop('test')
+    await new Promise((resolve) => server.close(resolve))
+  }
 })
 
 test('a site without the DSH provider patch reports an actionable error', async () => {

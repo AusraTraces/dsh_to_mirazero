@@ -25,11 +25,20 @@ dsh-mirazero-bridge
    ├─ 图片作为 Session prompt 的 image part
    ├─ 工具面清零：tools.restrict({ allow: [] }) + per-Session guard
    ├─ 可选自动检索：ctx.web.search()（只发查询词）
+   ├─ 心跳 → /api/plugin/dsh/heartbeat（停止时发 offline）
    └─ 回复 → /api/plugin/dsh/reply
    │
    ▼
 MiraZero 按原协议返回角色文本
 ```
+
+## 上线 / 下线同步
+
+- 桥接启动时把绑定模型设为 `online`；
+- 运行期间每 `heartbeatIntervalMs` 发送一次心跳；
+- 手动停止、插件卸载或 DSH 正常退出时发送 `offline`；
+- DSH 崩溃/断网时，站点在 `DSH_HEARTBEAT_TTL_SECONDS`（默认 90 秒）后自动把模型下线；
+- 重新启动 DSH 后心跳会把模型恢复为 `online`。
 
 ## 快速开始（两步）
 
@@ -163,6 +172,7 @@ mirazero_character { patch: { "personality": "更温和一些", "lorebook": [] }
 | `workspacePath` | `$DSH_HOME/mirazero` | MiraZero 工作区目录 |
 | `workspaceTitle` | `MiraZero` | 工作区显示名 |
 | `pollIntervalMs` | `3000` | 轮询间隔 |
+| `heartbeatIntervalMs` | `30000` | 心跳间隔；站点超过 TTL 收不到心跳会自动下线模型 |
 | `replyTimeoutMs` | `180000` | 单请求生成超时 |
 | `maxInputChars` | `24000` | 文本上限 |
 | `maxHistoryMessages` | `40` | 消息条数上限 |
@@ -238,12 +248,13 @@ node --check index.js
 node --test
 ```
 
-当前覆盖：**34 项测试**，包括
+当前覆盖：**36 项测试**，包括
 
 - 角色卡结构与启用开关、lorebook 命中；
 - 图片 data URL / Anthropic base64 / 远程 URL / 私网拒绝；
 - 文本格式保留、工具消息丢弃；
 - 模型绑定 Key 的 Bearer / `x-api-key`、`/api/integrations/v1/models`、`/api/plugin/dsh/*`；
+- 启动 online 心跳、停止 offline 心跳、旧站点缺少心跳路由时仍可启动；
 - 设置页读写、Key 掩码、`settings.section` 注册；
 - 缺少 DSH 提供方接口时的可操作错误；
 - 每个请求独立 Session、工作区归属、`allow: []`、guard、system prompt 注入、图片 part。
@@ -285,7 +296,7 @@ curl -H "Authorization: Bearer mzi_xxx" \
 
 - Key 必须是 **模型设置 → 第三方接入 → Agent 平台** 创建的 `mzi_...`；
 - 普通用户 API Key（`mz_...`）不能用于这个接口；
-- 模型必须已保存、在线，且属于 Key 所属账号。
+- 模型必须已保存且属于 Key 所属账号；桥接启动后心跳会自动把它设为在线。
 
 ## 已知限制
 

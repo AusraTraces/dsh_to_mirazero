@@ -26,6 +26,11 @@ export class MiraZeroBridge {
   #running = false
   #busy = false
   #timer
+  #heartbeatTimer
+  #heartbeatSupported = true
+  #lastHeartbeatAt = null
+  #lastHeartbeatError = null
+  #presencePromise = null
   #startedAt = null
   #lastPollAt = null
   #lastError = null
@@ -118,6 +123,10 @@ export class MiraZeroBridge {
     this.#running = true
     this.#startedAt = nowIso()
     this.#lastError = null
+    this.#heartbeatSupported = true
+    if (this.#presencePromise) await this.#presencePromise
+    await this.#sendHeartbeat('online')
+    this.#scheduleHeartbeat()
     this.#logger.info(
       `bridge started: workspace=${this.#config.workspacePath} api=${this.#lastProbe.mode} fullContext=${this.#lastProbe.fullContext}`,
     )
@@ -134,6 +143,11 @@ export class MiraZeroBridge {
     this.#running = false
     if (this.#timer) clearTimeout(this.#timer)
     this.#timer = undefined
+    if (this.#heartbeatTimer) clearTimeout(this.#heartbeatTimer)
+    this.#heartbeatTimer = undefined
+    this.#presencePromise = this.#heartbeatSupported
+      ? this.#sendHeartbeat('offline')
+      : Promise.resolve(false)
     for (const record of this.#sessions.values()) {
       this.#settle(record, new Error(`bridge stopped (${reason})`))
     }
@@ -164,6 +178,35 @@ export class MiraZeroBridge {
     } catch (error) {
       this.#workspaceId = null
       this.#logger.warn(`workspace registration failed: ${describeError(error)}`)
+    }
+  }
+
+  #scheduleHeartbeat() {
+    if (!this.#running || !this.#heartbeatSupported) return
+    if (this.#heartbeatTimer) clearTimeout(this.#heartbeatTimer)
+    this.#heartbeatTimer = setTimeout(async () => {
+      await this.#sendHeartbeat('online')
+      this.#scheduleHeartbeat()
+    }, this.#config.heartbeatIntervalMs)
+    this.#heartbeatTimer.unref?.()
+  }
+
+  async #sendHeartbeat(status) {
+    if (status === 'online' && !this.#heartbeatSupported) return false
+    try {
+      await this.#api.heartbeat(status)
+      this.#lastHeartbeatAt = nowIso()
+      this.#lastHeartbeatError = null
+      return true
+    } catch (error) {
+      this.#lastHeartbeatError = describeApiError(error)
+      if (error?.name === 'MiraZeroError' && (error.code === 'DSH_PATCH_MISSING' || error.status === 404)) {
+        this.#heartbeatSupported = false
+        this.#logger.warn('MiraZero presence endpoint is unavailable; auto-offline is disabled')
+      } else {
+        this.#logger.warn(`heartbeat ${status} failed: ${this.#lastHeartbeatError}`)
+      }
+      return false
     }
   }
 
@@ -597,6 +640,12 @@ export class MiraZeroBridge {
       pending: this.#lastProbe?.pending ?? null,
       handled: this.#handled,
       failed: this.#failed,
+      presence: {
+        supported: this.#heartbeatSupported,
+        lastHeartbeatAt: this.#lastHeartbeatAt,
+        lastError: this.#lastHeartbeatError,
+        intervalMs: this.#config.heartbeatIntervalMs,
+      },
     }
   }
 
@@ -724,6 +773,12 @@ export class MiraZeroBridge {
       recent: this.#recent,
       search: { ...this.#config.search },
       images: { ...this.#config.media },
+      presence: {
+        supported: this.#heartbeatSupported,
+        lastHeartbeatAt: this.#lastHeartbeatAt,
+        lastError: this.#lastHeartbeatError,
+        intervalMs: this.#config.heartbeatIntervalMs,
+      },
       isolation: isolationManifest(),
     }
   }

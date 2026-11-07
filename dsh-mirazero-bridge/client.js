@@ -47,6 +47,10 @@
       missing: '缺少',
       lastError: '上次错误',
       fullContext: '完整上下文',
+      presence: '下线同步',
+      presenceOn: '已启用',
+      presenceOff: '不可用',
+      lastHeartbeat: '上次心跳',
       character: '角色卡',
       enableCharacter: '启用角色卡',
       characterHint: '关闭后使用中性助手回复；开启后下面字段会注入每个新会话的 system prompt。',
@@ -93,6 +97,10 @@
       missing: 'Missing',
       lastError: 'Last error',
       fullContext: 'Full context',
+      presence: 'Offline sync',
+      presenceOn: 'Enabled',
+      presenceOff: 'Unavailable',
+      lastHeartbeat: 'Last heartbeat',
       character: 'Character card',
       enableCharacter: 'Enable character card',
       characterHint: 'When off, replies use a neutral assistant. When on, the fields below enter every new Session system prompt.',
@@ -442,6 +450,10 @@
                 ? h('span', null, `${t.missing}: ${config.missing.map(missingLabel).join('、')}`)
                 : null,
               h('span', null, `${t.fullContext}: ${config.fullContext === true ? '✓' : '—'}`),
+              h('span', null, `${t.presence}: ${config.presence?.supported ? t.presenceOn : t.presenceOff}`),
+              config.presence?.lastHeartbeatAt
+                ? h('span', null, `${t.lastHeartbeat}: ${config.presence.lastHeartbeatAt}`)
+                : null,
               config.model ? h('span', null, `绑定模型: ${config.model}`) : null,
               config.lastError ? h('span', null, `${t.lastError}: ${friendlyError(config.lastError)}`) : null,
             ),

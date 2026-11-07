@@ -1,7 +1,7 @@
 {
   "name": "dsh-mirazero-bridge",
-  "version": "0.6.0",
-  "description": "Connect a DeepSeek Harness role-play character to a MiraZero model with a model-bound integration key. One isolated Session per public request, text and images, a single character-card switch, and a Chinese Settings page for the connection.",
+  "version": "0.7.0",
+  "description": "Connect a DeepSeek Harness role-play character to a MiraZero model with a model-bound integration key. One isolated Session per public request, text and images, a single character-card switch, a Chinese Settings page, and heartbeat-driven online/offline sync.",
   "type": "module",
   "main": "index.js",
   "exports": {

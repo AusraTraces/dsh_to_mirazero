@@ -110,6 +110,14 @@ export class MiraZeroApi {
     return body
   }
 
+  async heartbeat(status = 'online') {
+    return this.#request('/api/plugin/dsh/heartbeat', {
+      method: 'POST',
+      body: { status },
+      timeoutMs: 15000,
+    })
+  }
+
   async reply(id, response) {
     return this.#request('/api/plugin/dsh/reply', {
       method: 'POST',

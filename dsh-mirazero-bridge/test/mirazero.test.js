@@ -50,6 +50,23 @@ test('models use the new integrations endpoint', async () => {
   assert.match(seen, /\/api\/integrations\/v1\/models/)
 })
 
+test('heartbeat posts online or offline presence', async () => {
+  const calls = []
+  const api = new MiraZeroApi({
+    baseUrl: 'https://mz.example',
+    apiKey: 'mzi_secret',
+    fetchImpl: async (url, options) => {
+      calls.push({ url: String(url), body: JSON.parse(options.body) })
+      return response({ ok: true })
+    },
+  })
+  await api.heartbeat('online')
+  await api.heartbeat('offline')
+  assert.match(calls[0].url, /\/api\/plugin\/dsh\/heartbeat/)
+  assert.equal(calls[0].body.status, 'online')
+  assert.equal(calls[1].body.status, 'offline')
+})
+
 test('reply uses the DSH provider endpoint', async () => {
   let call
   const api = new MiraZeroApi({

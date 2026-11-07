@@ -54,6 +54,7 @@ export function loadConfig(raw = {}, env = process.env) {
     autoStart: raw.autoStart === true,
     models: normalizeList(raw.models),
     pollIntervalMs: clampInt(raw.pollIntervalMs, 1500, 60000, 3000),
+    heartbeatIntervalMs: clampInt(raw.heartbeatIntervalMs, 10000, 300000, 30000),
     requestTimeoutMs: clampInt(raw.requestTimeoutMs, 5000, 120000, 30000),
     replyTimeoutMs: clampInt(raw.replyTimeoutMs, 30000, 600000, 180000),
     maxInputChars: clampInt(raw.maxInputChars, 2000, 200000, 24000),

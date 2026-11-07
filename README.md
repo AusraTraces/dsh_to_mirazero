@@ -19,6 +19,7 @@ DeepSeek Harness（DSH）Host 插件：把 DSH 里运行的角色卡接到 MiraZ
 - 工具面清零：`tools.restrict({ allow: [] })` + 每会话 guard；
 - 设置页可视化填写站点地址、接入 Key，检查连接、启停轮询；
 - 设置页只保留一个功能开关：**启用角色卡**；
+- DSH 下线时通过心跳把 MiraZero 模型同步下线；异常退出由站点 TTL 兜底；
 - 中文设置界面；
 - 审计写入 `$DSH_HOME/mirazero-bridge/audit.jsonl`，默认不记正文。
 
@@ -115,7 +116,7 @@ cd dsh-mirazero-bridge
 node --test
 ```
 
-34 项测试覆盖角色卡开关、lorebook、图片、私网拦截、模型绑定 Key、缺少提供方接口、
+36 项测试覆盖角色卡开关、lorebook、图片、私网拦截、模型绑定 Key、上下线心跳、缺少提供方接口、
 每个请求独立 Session、`allow: []`、guard、system prompt 注入、图片 part、设置页读写与
 `settings.section` 注册。
 
