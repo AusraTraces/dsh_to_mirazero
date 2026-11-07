@@ -681,6 +681,12 @@ export class MiraZeroBridge {
     this.#audit({ event: 'connection.updated', baseUrl, apiKeyPresent: Boolean(apiKey), changed })
 
     if (changed) {
+      const wasRunning = this.#running
+      // Take the old model offline with the old origin/key before swapping.
+      if (wasRunning) {
+        this.stop('config-changed')
+        if (this.#presencePromise) await this.#presencePromise
+      }
       this.#lastProbe = null
       this.#api = new MiraZeroApi({
         baseUrl,
@@ -688,8 +694,7 @@ export class MiraZeroBridge {
         timeoutMs: this.#config.requestTimeoutMs,
         logger: this.#logger,
       })
-      if (this.#running) {
-        this.stop('config-changed')
+      if (wasRunning) {
         try {
           await this.start()
         } catch (error) {
